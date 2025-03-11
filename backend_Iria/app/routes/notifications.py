@@ -1,4 +1,4 @@
-# rutas de notificaciones
+#archivo de rutas de notificaciones
 from flask import Blueprint, jsonify
 
 notifications_bp = Blueprint('notifications', __name__)
