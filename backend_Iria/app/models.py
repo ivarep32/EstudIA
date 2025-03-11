@@ -1,4 +1,4 @@
-#definicion de la base de datos.
+#archivo definicion de la base de datos.
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 
