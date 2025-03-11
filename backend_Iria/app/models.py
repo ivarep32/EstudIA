@@ -22,6 +22,7 @@ class User(db.Model):
 class Group(db.Model):
     __tablename__ = "group"
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
     supergroup_id = db.Column(db.Integer, db.ForeignKey("group.id"), nullable=True)  # Self-referencing foreign key
 
 # --- Course Table ---
