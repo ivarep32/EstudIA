@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 """DEPENDE DE LA BD"""
-from app.models import db, GroupAdmin, Participation, Schedule, Activity, Subject, TimeSlot, Event, GroupEvent
+from models import db, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group
 
 group_bp = Blueprint('group', __name__)
 
@@ -36,25 +36,40 @@ def get_group_schedules(group_id):
     schedule = Schedule.query.filter_by(group_id=group_id).first()
     if not schedule:
         return jsonify({"message": "No schedule found for this group"}), 404
-    
-    schedule_activities = Activity.query.join(TimeSlot.filter(TimeSlot.schedule_id == schedule.id)).join(Subject).all()
-    
+
+    q = Activity.query.join(TimeSlot.query.filter_by(TimeSlot.schedule_id == schedule.id))
+    schedule_subjects = q.join(Subject).all()
+    schedule_user_activities = q.join(UserActivity).all()
     schedule_data = {
         "id": schedule.id,
         "name": schedule.name,
         "subjects": [
             {
+                "id": sa.id,
+                "name": sa.name,
+                "difficulty": sa.difficulty,
+                "priority": sa.difficulty,
+
                 "day_of_week": sa.timeslot.day_of_week,
                 "start_time": sa.timeslot.start_time.isoformat(),
                 "end_time": sa.timeslot.end_time.isoformat(),
+
+                "curriculum": sa.curriculum,
+                "professor": sa.professor
+
+            } for sa in schedule_subjects
+        ],
+        "user_activities": [
+            {
                 "id": sa.id,
                 "name": sa.name,
-                "difficulty" : sa.difficulty,
-                "priority" : sa.difficulty,
-                "curriculum" : sa.curriculum,
-                "professor" : sa.professor
-                            
-            } for sa in schedule_activities
+                "difficulty": sa.difficulty,
+                "priority": sa.difficulty,
+
+                "day_of_week": sa.timeslot.day_of_week,
+                "start_time": sa.timeslot.start_time.isoformat(),
+                "end_time": sa.timeslot.end_time.isoformat(),
+            } for sa in schedule_user_activities
         ]
     }
     return jsonify(schedule_data), 200
