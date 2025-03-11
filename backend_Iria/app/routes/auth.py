@@ -1,4 +1,4 @@
-#rutas de autenticacion
+#archivo de rutas de autenticacion
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
 """DEPENDE DE LA BD"""
