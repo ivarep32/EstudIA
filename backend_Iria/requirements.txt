@@ -1,7 +1,0 @@
-Esto son las dependencias (es decir, las instalaciones necesarias):
-
-Flask
-Flask-SQLAlchemy
-Flask-JWT-Extended
-Flask-CORS
-Flask-Bcrypt
