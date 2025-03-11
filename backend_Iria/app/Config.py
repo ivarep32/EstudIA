@@ -1,4 +1,4 @@
-#configuracion del flask
+#archivo de configuracion del flask
 import os
 
 class Config:
