@@ -1,7 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+
 db = SQLAlchemy()
 bcrypt = Bcrypt()
+
 # --- User Table ---
 class User(db.Model):
     __tablename__ = "user"
@@ -10,6 +12,12 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
 
+    def set_password(self, password):
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def check_password(self, password):
+        return bcrypt.check_password_hash(self.password, password)
+    
 # --- Group Table ---
 class Group(db.Model):
     __tablename__ = "group"
@@ -80,19 +88,13 @@ class Schedule(db.Model):
 # --- Timeslot Table ---
 class TimeSlot(db.Model):
     __tablename__ = "time_slot"
-    id = db.Column(db.Integer, primary_key=True)
+    schedule_id = db.Column(db.Integer, db.ForeignKey("schedule.id"))
     day_of_week = db.Column(db.String(20), nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
-
-# --- Schedule-Activity Relationship ---
-class ScheduleActivity(db.Model):
-    __tablename__ = "schedule_activity"
-    schedule_id = db.Column(db.Integer, db.ForeignKey("schedule.id"), nullable=False)
-    timeslot_id = db.Column(db.Integer, db.ForeignKey("time_slot.id"), nullable=False)
     activity_id = db.Column(db.Integer, db.ForeignKey("activity.id"), nullable=False)
     __table_args__ = (
-        db.PrimaryKeyConstraint("schedule_id", "timeslot_id"),
+        db.PrimaryKeyConstraint("schedule_id", "day_of_week", "start_time"),
     )
 
 # --- User Activity Log ---
