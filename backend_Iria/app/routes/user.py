@@ -1,7 +1,5 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from flasgger import swag_from
-
 """DEPENDE DE LA BD"""
 from models import db, User, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group
 
@@ -18,6 +16,29 @@ def get_groups():
         "parent_group" : g.supergroup_id
     } for g in groups]), 200
 
+@user_bp.route('/subjects', methods=['GET'])
+@jwt_required()
+def get_subjects():
+    user_id = get_jwt_identity()
+    groups_query = Group.query.join(Participation.query.filter_by(user_id=user_id))
+    subjects = groups_query.join(TimeSlot).join(Subject).all()
+    
+    return jsonify({"subjects": [
+        {
+            "id": s.activity_id,
+            "name": s.name,
+            "difficulty" : s.difficulty,
+            "priority" : s.difficulty,
+            
+            "day_of_week": s.day_of_week,
+            "start_time": s.start_time.isoformat(),
+            "end_time": s.end_time.isoformat(),
+            
+            "curriculum" : s.curriculum,
+            "professor" : s.professor
+                        
+        } for s in subjects
+    ]})
 
 @user_bp.route('/activity', methods=['POST'])
 @jwt_required()
@@ -44,7 +65,7 @@ def add_activity():
         data["hours"] = None
     if not "period" in data:
         data["period"] = None
-        
+    
     subject = UserActivity(
         activity_id=activity,
         user_id=user_id,
@@ -61,26 +82,15 @@ def add_activity():
 @user_bp.route('/schedule', methods=['POST'])
 @jwt_required()
 def add_user_schedule():
-    """
-    "timeslots": [
-        {
-            "id": sa.activity_id,
-            
-            "day_of_week": sa.day_of_week,
-            "start_time": sa.start_time.isoformat(),
-            "end_time": sa.end_time.isoformat(),
-                        
-        } for sa in schedule_subjects
-    ]
-    """
     user_id = get_jwt_identity()
 
     data = request.get_json()
 
-    if not data:
+    if not data or 'name' not in data:
         return jsonify({"message": "Invalid JSON format"}), 400
 
     new_schedule = Schedule(
+        name=data['name'],
         user_id=user_id
     )
     
@@ -125,6 +135,7 @@ def get_full_user_schedules():
             "schedules" :  [
                 {
                     "id": schedule.schedule_id,
+                    "name": schedule.name,
                     "subjects": [
                         {
                             "id": sa.activity_id,
