@@ -25,11 +25,6 @@ class Group(db.Model):
     name = db.Column(db.String(100), nullable=False)
     supergroup_id = db.Column(db.Integer, db.ForeignKey("group.group_id"), nullable=True)  # Self-referencing foreign key
 
-# --- Course Table ---
-class Course(db.Model):
-    __tablename__ = "course"
-    course_id = db.Column(db.Integer, db.ForeignKey("group.group_id"), primary_key=True)  # Course is a specialized group
-
 # --- Participation Table ---
 class Participation(db.Model):
     __tablename__ = "participation"
@@ -61,7 +56,7 @@ class Activity(db.Model):
 class Subject(db.Model):
     __tablename__ = "subject"
     activity_id = db.Column(db.Integer, db.ForeignKey("activity.activity_id"), primary_key=True)  # Subject is an Activity
-    course_id = db.Column(db.Integer, db.ForeignKey("course.course_id"), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey("group.group_id"), nullable=False)
     curriculum = db.Column(db.Text, nullable=False)
     professor = db.Column(db.String(100), nullable=False)
 
