@@ -114,19 +114,10 @@ def add_subject(group_id):
 
 @jwt_required()
 def add_group_schedule(group_id):
-    """
-    "timeslots": [
-        {
-            "id": sa.activity_id,
-
-            "day_of_week": sa.day_of_week,
-            "start_time": sa.start_time.isoformat(),
-            "end_time": sa.end_time.isoformat(),
-
-        } for sa in schedule_subjects
-    ]
+    group = db.session.get(Group, group_id)
+    if not group:
+        return jsonify({"message": "Group not found"}),404
     
-    """
     user_id = get_jwt_identity()
 
     if not GroupAdmin.query.filter_by(user_id=user_id, group_id=group_id).first():
@@ -240,39 +231,26 @@ def get_group_schedules(group_id):
     if not schedule:
         return jsonify({"message": "No schedule found for this group"}), 404
     
-    q = Activity.query.join(TimeSlot.query.filter_by(schedule_id = schedule.schedule_id))
-    schedule_subjects = q.join(Subject).all()
-    schedule_user_activities = q.join(UserActivity).all()
+    activity_query = Activity.query.join(TimeSlot.query.filter_by(schedule_id = schedule.schedule_id))
+    schedule_subjects = activity_query.join(Subject).all()
 
     schedule_data = {
         "id": schedule.schedule_id,
         "subjects": [
             {
-                "id": sa.activity_id,
-                "name": sa.name,
-                "difficulty" : sa.difficulty,
-                "priority" : sa.difficulty,
+                "id": s.activity_id,
+                "name": s.name,
+                "difficulty" : s.difficulty,
+                "priority" : s.difficulty,
                 
-                "day_of_week": sa.day_of_week,
-                "start_time": sa.start_time.isoformat(),
-                "end_time": sa.end_time.isoformat(),
+                "day_of_week": s.day_of_week,
+                "start_time": s.start_time.isoformat(),
+                "end_time": s.end_time.isoformat(),
                 
-                "curriculum" : sa.curriculum,
-                "professor" : sa.professor
+                "curriculum" : s.curriculum,
+                "professor" : s.professor
                             
-            } for sa in schedule_subjects
-        ],
-        "user_activities": [
-            {
-                "id": sa.activity_id,
-                "name": sa.name,
-                "difficulty" : sa.difficulty,
-                "priority" : sa.difficulty,
-                
-                "day_of_week": sa.day_of_week,
-                "start_time": sa.start_time.isoformat(),
-                "end_time": sa.end_time.isoformat(),
-            } for sa in schedule_user_activities
+            } for s in schedule_subjects
         ]
     }
     return jsonify(schedule_data), 200
