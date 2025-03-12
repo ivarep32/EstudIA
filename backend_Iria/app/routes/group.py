@@ -315,7 +315,6 @@ def add_event(group_id):
     )
     db.session.add(group_event)
 
-    "para cada usuario del grupo crear un UserEvent con completado = False y visto = False"
     participation = Participation.query.filter_by(group_id=group_id).all()
     for p in participation:
         user_id = p["user_id"]
@@ -330,3 +329,57 @@ def add_event(group_id):
     db.session.commit()
 
     return jsonify({"message": "Evento añadido"}), 201
+
+@group_bp.route('/group', methods=['POST'])
+@swag_from({
+    'tags': ['Group'],
+    'summary': 'Crear un nuevo grupo',
+    'description': """Permite crear un nuevo grupo. 
+                      El usuario pasa a ser el admin del grupo que crea.
+                      Si se proporciona el `supergroup_id`, el grupo se genera como subgrupo de forma automática, 
+                      pero no es obligatorio.""",
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'name': {'type': 'string', 'example': 'Grupo de Matemáticas'},
+                    'supergroup_id': {'type': 'integer', 'example': 1, 'nullable': True}
+                }
+            }
+        }
+    ],
+    'responses': {
+        201: {'description': 'Grupo creado exitosamente'},
+        400: {'description': 'Datos inválidos'},
+        401: {'description': 'No autorizado'}
+    }
+})
+
+@jwt_required()
+def add_group():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    if not data or 'name' not in data:
+        return jsonify({"message": "Invalid JSON format"}), 400
+
+    new_group = Group(
+        name=data["name"],
+        supergroup_id=data.get('supergroup_id')
+    )
+    db.session.add(new_group)
+    db.session.flush()
+
+    admin = GroupAdmin(
+        user_id=user_id,
+        group_id=new_group.id
+    )
+    db.session.add(admin)
+
+    db.session.commit()
+
+    return jsonify({"message": "Grupo creado"}), 201
