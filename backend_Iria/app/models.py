@@ -25,6 +25,13 @@ class Group(db.Model):
     name = db.Column(db.String(100), nullable=False)
     supergroup_id = db.Column(db.Integer, db.ForeignKey("group.group_id"), nullable=True)  # Self-referencing foreign key
 
+# --- File Table ---
+class File(db.Model):
+    file_id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(255), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.group_id'), nullable=False)
+
 # --- Participation Table ---
 class Participation(db.Model):
     __tablename__ = "participation"
