@@ -448,3 +448,53 @@ def add_event():
     db.session.commit()
 
     return jsonify({"message": "Evento añadido"}), 201
+
+
+@user_bp.route('/events', methods=['GET'])
+@jwt_required()
+@swag_from({
+    'tags': ['User'],
+    'summary': 'Obtener los eventos del usuario',
+    'description': 'Devuelve todas los eventos relacionados con los grupos del usuario',
+    'responses': { # falta
+        200: {
+            'description': 'Lista de eventos',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer', 'example': 10},
+'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
+                        'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
+                        'type': {'type': 'string','example': 'examen'},
+                        'name': {'type': 'string', 'example': 'Examen de Algebra'},
+                        'description': {'type': 'string', 'example': 'Examen final de algebra, entran todos los temas'},
+                        'completed': {'type': 'boolean', 'example': True},
+                        'seen': {'type': 'boolean', 'example': True}
+                    }
+                }
+            }
+        },
+        401: {'description': 'No autorizado'}
+    }
+})
+def get_events():
+    user_id = get_jwt_identity()
+    events = UserEvent.query.filter_by(user_id=user_id).join(Event, Event.event_id == UserEvent.event_id).all()
+
+    return jsonify([
+        {
+            "id": e.event_id,
+            "start_time": e.start_time.isoformat(),
+            "end_time": e.end_time.isoformat(),
+            "type": e.type,
+            "name": e.name,
+            "description": e.description,
+
+            "completed": e.completed,
+            "seen": e.seen
+
+        } for e in events
+    ]), 200
+
