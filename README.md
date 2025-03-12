@@ -20,4 +20,4 @@ El programa debe ejecutarse desde run.py (backend_Iria/run.py), es posible que e
 
 acabar de empatar frontend y backend
 
-hacer los codigos de prueba de api del backend (pending: notifications y user)
+hacer los codigos de prueba de api del backend (pending: notifications)
