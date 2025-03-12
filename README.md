@@ -17,5 +17,6 @@ La carpeta "frontend_Carla" contiene los archivos necesarios para el frontend
 El programa debe ejecutarse desde run.py (backend_Iria/run.py), es posible que ejecutar otros archivos por separado dé errores, pero esto se debe a direcciones de importación y no afectan al programa final.
 
 =================== NOTAS DE DESARROLLO ===========================
+
 acabar de empatar frontend y backend
 hacer los codigos de prueba de api del backend (pending: notifications, group y schedule)
