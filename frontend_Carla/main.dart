@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 // URL de tu backend Flask (si deseas probar las llamadas HTTP; de lo contrario, usa datos dummy)
-const String backendUrl = "http://192.168.56.1";
+const String backendUrl = "http://127.0.0.1:5000";
 
 void main() {
   runApp(MyApp());
@@ -201,7 +201,7 @@ class _EventosPageState extends State<EventosPage> {
   Future<void> fetchEventos() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.56.1/eventos'),
+        Uri.parse('http://127.0.0.1:5000/eventos'),
         headers: {'Authorization': 'Bearer TOKEN_AQUI'},
       );
 
@@ -220,7 +220,7 @@ class _EventosPageState extends State<EventosPage> {
   Future<void> addEvento() async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.56.1/eventos'),
+        Uri.parse('http://127.0.0.1:5000/eventos'),
         headers: {
           'Authorization': 'Bearer TOKEN_AQUI',
           'Content-Type': 'application/json',
@@ -309,7 +309,8 @@ class _EventosPageState extends State<EventosPage> {
   }
 }
 
-// Definición única de la clase
+
+
 class CronometroPage extends StatefulWidget {
   @override
   _CronometroPageState createState() => _CronometroPageState();
@@ -317,24 +318,24 @@ class CronometroPage extends StatefulWidget {
 
 class _CronometroPageState extends State<CronometroPage> {
   bool running = false;
-  int time = 0;
+  int time = 0; // Tiempo en segundos
   String tareaId = '';
   String? registroId;
   Timer? timer;
 
   void startTimer() {
     timer = Timer.periodic(Duration(seconds: 1), (Timer t) {
-      setState(() => time += 1);
+      setState(() {
+        time += 1;
+      });
     });
   }
 
   void stopTimer() {
-    timer?.cancel();
+    if (timer != null) {
+      timer!.cancel();
+    }
   }
-
-  // Resto del código sin cambios...
-}
-
 
   Future<void> iniciarCronometro() async {
     if (tareaId.isEmpty) {
@@ -346,7 +347,7 @@ class _CronometroPageState extends State<CronometroPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.56.1/cronometro/start'),
+        Uri.parse('http://127.0.0.1:5000/cronometro/start'),
         headers: {
           'Authorization': 'Bearer TOKEN_AQUI',
           'Content-Type': 'application/json',
@@ -374,7 +375,7 @@ class _CronometroPageState extends State<CronometroPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.56.1/cronometro/stop'),
+        Uri.parse('http://127.0.0.1:5000/cronometro/stop'),
         headers: {
           'Authorization': 'Bearer TOKEN_AQUI',
           'Content-Type': 'application/json',
@@ -400,47 +401,49 @@ class _CronometroPageState extends State<CronometroPage> {
       print('Error al detener cronómetro: $e');
     }
   }
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Cronómetro de Trabajo')),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              decoration: InputDecoration(labelText: 'ID de la tarea'),
-              onChanged: (value) {
-                setState(() {
-                  tareaId = value;
-                });
-              },
-            ),
-            SizedBox(height: 20),
-            Text('Tiempo: $time segundos', style: TextStyle(fontSize: 24)),
-            SizedBox(height: 20),
-            running
-                ? ElevatedButton(
-                    onPressed: detenerCronometro,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ),
-                    child: Text('Detener'),
-                  )
-                : ElevatedButton(
-                    onPressed: iniciarCronometro,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                    ),
-                    child: Text('Iniciar'),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(title: Text('Cronómetro de Trabajo')),
+    body: Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TextField(
+            decoration: InputDecoration(labelText: 'ID de la tarea'),
+            onChanged: (value) {
+              setState(() {
+                tareaId = value;
+              });
+            },
+          ),
+          SizedBox(height: 20),
+          Text('Tiempo: $time segundos', style: TextStyle(fontSize: 24)),
+          SizedBox(height: 20),
+          running
+              ? ElevatedButton(
+                  onPressed: detenerCronometro,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
                   ),
-          ],
-        ),
+                  child: Text('Detener'),
+                )
+              : ElevatedButton(
+                  onPressed: iniciarCronometro,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                  child: Text('Iniciar'),
+                ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
 class AvisosPage extends StatefulWidget {
   @override
@@ -460,7 +463,7 @@ class _AvisosPageState extends State<AvisosPage> {
   Future<void> fetchAvisos() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.56.1/avisos'), // Cambia por la URL de tu backend
+        Uri.parse('http://127.0.0.1:5000/avisos'), // Cambia por la URL de tu backend
         headers: {'Authorization': 'Bearer TOKEN_AQUI'},
       );
 
@@ -481,7 +484,7 @@ class _AvisosPageState extends State<AvisosPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.56.1/avisos'),
+        Uri.parse('http://127.0.0.1:5000/avisos'),
         headers: {
           'Authorization': 'Bearer TOKEN_AQUI',
           'Content-Type': 'application/json',
