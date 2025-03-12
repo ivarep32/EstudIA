@@ -232,7 +232,7 @@ def get_group_schedules(group_id):
         return jsonify({"message": "No schedule found for this group"}), 404
     
     activity_query = Activity.query.join(TimeSlot.query.filter_by(schedule_id = schedule.schedule_id))
-    schedule_subjects = activity_query.join(Subject).all()
+    schedule_subjects = activity_query.join(Subject, Subject.activity_id==Activity.activity_id).all()
 
     schedule_data = {
         "id": schedule.schedule_id,
