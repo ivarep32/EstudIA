@@ -254,3 +254,31 @@ def get_group_schedules(group_id):
         ]
     }
     return jsonify(schedule_data), 200
+
+@group_bp.route('/event/<int:group_id>', methods=['POST'])
+@jwt_required()
+def add_event(group_id):
+    group = db.session.get(Group, group_id)
+    if not group:
+        return jsonify({"message": "Group not found"}), 404
+    user_id = get_jwt_identity()
+
+    if not GroupAdmin.query.filter_by(user_id=user_id, group_id=group_id).first():
+        return jsonify({"message": "Admin access required"}), 403
+
+    data = request.get_json()
+
+    if not data or 'name' not in data:
+        return jsonify({"message": "Invalid JSON format"}), 400
+
+    event = Event(
+        name=data["name"], #cambiar
+        description=data["description"],
+        difficulty=data["difficulty"],
+        priority=data["priority"]
+    )
+
+    db.session.add(event)
+    db.session.commit()
+
+    return jsonify({"message": "Evento añadido"}), 201
