@@ -1,11 +1,34 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from flasgger import swag_from
 """DEPENDE DE LA BD"""
-from models import db, User, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group
+from app.models import db, User, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group
 
 user_bp = Blueprint('user', __name__, url_prefix="/user")
 
 @user_bp.route('/groups', methods=['GET'])
+@swag_from({
+    'tags': ['User'],
+    'summary':'Devuelve los grupos de un usurario',
+    'responses':{
+        200:{
+            'description': 'lista de grupos',
+            'schema': {
+                'type': 'array',
+                'items':{
+                    'type': 'object',
+                    'properties':{
+                        'id': {'type': 'integer', 'example': 1},
+                        'name': {'type': 'string', 'example': 'grupo de mates'},
+                        'parent_group': {'type': 'integer', 'example': 2}
+                    }
+                }
+
+            }
+        },
+        401: {'description': 'No autorizado'}
+    }
+})
 @jwt_required()
 def get_groups():
     user_id = get_jwt_identity()
@@ -18,6 +41,34 @@ def get_groups():
 
 @user_bp.route('/subjects', methods=['GET'])
 @jwt_required()
+@swag_from({
+    'tags': ['User'],
+    'summary': 'Obtener las materias del usuario',
+    'description': 'Devuelve todas las materias relacionadas con los grupos del usuario',
+    'responses':{
+        200:{
+            'description': 'Lista de materias',
+            'schema':{
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties':{
+                        'id': {'type': 'integer', 'example': 10},
+                        'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
+                        'difficulty': {'type': 'integer', 'example': 3},
+                        'priority': {'type': 'integer', 'example': 2},
+                        'day_of_week': {'type': 'string', 'example': 'Monday'},
+                        'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
+                        'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
+                        'curriculum': {'type': 'string', 'example': 'Álgebra, Cálculo Diferencial'},
+                        'professor': {'type': 'string', 'example': 'Dr. Juan Pérez'}
+                    }
+                }
+            }
+        },
+        401: {'description': 'No autorizado'}
+    }
+})
 def get_subjects():
     user_id = get_jwt_identity()
     groups_query = Group.query.join(Participation.query.filter_by(user_id=user_id))
@@ -42,6 +93,35 @@ def get_subjects():
 
 @user_bp.route('/activity', methods=['POST'])
 @jwt_required()
+@swag_from({
+    'tags': ['User'],
+    'summary': 'Añadir una actividad',
+    'description': 'Permite al usuario añadir una nueva actividad',
+    'parameters':[
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema':{
+                'type':'object',
+                'properties':{
+                    'name': {'type': 'string', 'example': 'Tarea de Física'},
+                    'description': {'type': 'string', 'example': 'Resolver ejercicios de dinámica'},
+                    'difficulty': {'type': 'integer', 'example': 4},
+                    'priority': {'type': 'integer', 'example': 1},
+                    'subject_id': {'type': 'integer', 'example': 2},
+                    'hours': {'type': 'number', 'example': 2.5},
+                    'period': {'type': 'string', 'example': 'weekly'}
+                }
+            }
+        }
+    ],
+    'responses':{
+        201: {'description': 'Actividad añadida exitosamente'},
+        400: {'description': 'Datos inválidos'},
+        401: {'description': 'No autorizado'}
+    }
+})
 def add_activity():
     user_id = get_jwt_identity()
 
@@ -81,6 +161,41 @@ def add_activity():
 
 @user_bp.route('/schedule', methods=['POST'])
 @jwt_required()
+@swag_from({
+    'tags': ['User'],
+    'summary': 'Añadir un horario para el usuario',
+    'description': 'Permite al usuario autenticado crear un nuevo horario con sus actividades.',
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'name': {'type': 'string', 'example': 'Horario de Clases'},
+                    'timeslots': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'day_of_week': {'type': 'string', 'example': 'Lunes'},
+                                'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
+                                'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
+                                'activity_id': {'type': 'integer', 'example': 5}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    'responses': {
+        201: {'description': 'Horario añadido exitosamente'},
+        400: {'description': 'Formato JSON inválido'},
+        401: {'description': 'No autorizado'}
+    }
+})
 def add_user_schedule():
     user_id = get_jwt_identity()
 
@@ -115,6 +230,38 @@ def add_user_schedule():
 
 @user_bp.route('/schedules', methods=['GET'])
 @jwt_required()
+@swag_from({
+    'tags': ['User'],
+    'summary': 'Obtener horarios del usuario',
+    'description': 'Devuelve todos los horarios asociados al usuario autenticado.',
+    'responses': {
+        200: {
+            'description': 'Lista de horarios',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer', 'example': 1},
+                        'name': {'type': 'string', 'example': 'Horario de clases'},
+                        'subjects': {
+                            'type': 'array',
+                            'items': {
+                                'type': 'object',
+                                'properties': {
+                                    'id': {'type': 'integer', 'example': 10},
+                                    'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        404: {'description': 'No se encontraron horarios'},
+        401: {'description': 'No autorizado'}
+    }
+})
 def get_full_user_schedules():
     user_id = get_jwt_identity()
 
