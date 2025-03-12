@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from flasgger import swag_from
 
 """DEPENDE DE LA BD"""
-from app.models import db, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group
+from app.models import db, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group, UserEvent
 
 group_bp = Blueprint('group', __name__)
 
@@ -256,6 +256,33 @@ def get_group_schedules(group_id):
     return jsonify(schedule_data), 200
 
 @group_bp.route('/event/<int:group_id>', methods=['POST'])
+@swag_from({
+    'tags': ['group'],
+    'summary': 'Crear un nuevo evento',
+    'description': 'Permite al usuario añadir un nuevo evento',
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema':{
+                'type': 'object',
+                'properties':{
+                        'start_time': {'type':'string', 'format': 'date-time', 'example':'11:30:00'},
+                        'end_time': {'type':'string', 'format': 'date-time', 'example':'13:00:00'},
+                        'type': {'type':'string', 'example': 'examen parcial'},
+                        'name': {'type': 'string', 'example': 'Examen de geografía'},
+                        'description': {'type': 'string', 'example': 'Estudiar los rios de europa'}
+                }
+            }
+        }
+    ],
+    'responses':{
+        201:{'description': 'actividad creada exitosamente'},
+        400:{'description': 'datos inválidos'},
+        401:{'description': 'no autorizado'}
+    }
+})
 @jwt_required()
 def add_event(group_id):
     group = db.session.get(Group, group_id)
@@ -272,13 +299,34 @@ def add_event(group_id):
         return jsonify({"message": "Invalid JSON format"}), 400
 
     event = Event(
-        name=data["name"], #cambiar
-        description=data["description"],
-        difficulty=data["difficulty"],
-        priority=data["priority"]
+        start_time=data["start_time"],
+        end_time=data["end_time"],
+        type=data["type"],
+        name=data["name"],
+        description=data["description"]
     )
 
     db.session.add(event)
+    db.session.flush()
+
+    group_event = GroupEvent(
+        group_id=group_id,
+        event_id=event.id
+    )
+    db.session.add(group_event)
+
+    "para cada usuario del grupo crear un UserEvent con completado = False y visto = False"
+    participation = Participation.query.filter_by(group_id=group_id).all()
+    for p in participation:
+        user_id = p["user_id"]
+        user_event = UserEvent(
+            user_id=user_id,
+            event_id=event.id,
+            completed=False,
+            seen=False
+        )
+        db.session.add(user_event)
+
     db.session.commit()
 
     return jsonify({"message": "Evento añadido"}), 201

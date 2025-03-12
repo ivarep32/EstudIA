@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flasgger import swag_from
 """DEPENDE DE LA BD"""
-from app.models import db, User, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group
+from app.models import db, User, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group, UserEvent
 
 user_bp = Blueprint('user', __name__, url_prefix="/user")
 
@@ -391,3 +391,60 @@ def get_full_user_schedules():
                 }
             ]
     return jsonify(schedule_data), 200
+
+
+@user_bp.route('/event', methods=['POST'])
+@jwt_required()
+@swag_from({
+    'tags': ['User'],
+    'summary': 'Añadir un evento',
+    'description': 'Permite al usuario añadir un nuevo evento',
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'completed': {'type':'boolean', 'example': False},
+                    'seen': {'type':'boolean', 'example': False}
+                }
+            }
+        }
+    ],
+    'responses': {
+        201: {'description': 'Evento añadido exitosamente'},
+        400: {'description': 'Datos inválidos'},
+        401: {'description': 'No autorizado'}
+    }
+})
+def add_event():
+    user_id = get_jwt_identity()
+
+    data = request.get_json()
+
+    if not data or 'name' not in data:
+        return jsonify({"message": "Invalid JSON format"}), 400
+
+    event = Event(
+        start_time=data["start_time"],
+        end_time=data["end_time"],
+        type=data["type"],
+        name=data["name"],
+        description=data["description"]
+    )
+    db.session.add(event)
+    db.session.flush()
+
+    user_event = UserEvent(
+        user_id=user_id,
+        event_id=event.id,
+        completed=data['completed'],
+        seen=data['seen']
+    )
+
+    db.session.add(user_event)
+    db.session.commit()
+
+    return jsonify({"message": "Evento añadido"}), 201
