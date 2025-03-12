@@ -59,7 +59,7 @@ def register():
             'schema': {
                 'type': 'object',
                 'properties': {
-                    'email': {'type': 'string', 'example': 'usuario@example.com'},
+                    'username': {'type': 'string', 'example': 'usuario1'},
                     'password': {'type': 'string', 'example': '123456'}
                 }
             }
@@ -80,7 +80,7 @@ def register():
 })
 def login():
     data = request.json
-    user = User.query.filter_by(email=data['email']).first()
+    user = User.query.filter_by(username=data['username']).first()
     if user and user.check_password(data['password']):
         token = create_access_token(identity=user.user_id)
         return jsonify({"access_token": token}), 200
