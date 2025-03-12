@@ -128,6 +128,7 @@ class UserEvent(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.user_id"), nullable=False)
     event_id = db.Column(db.Integer, db.ForeignKey("event.event_id"), nullable=False)
     completed = db.Column(db.Boolean, default=False)
+    seen = db.Column(db.Boolean, default=False)
     __table_args__ = (
         db.PrimaryKeyConstraint("user_id", "event_id"),
     )
