@@ -82,7 +82,7 @@ def login():
     data = request.json
     user = User.query.filter_by(email=data['email']).first()
     if user and user.check_password(data['password']):
-        token = create_access_token(identity=user.id)
+        token = create_access_token(identity=user.user_id)
         return jsonify({"access_token": token}), 200
 
     return jsonify({"error": "Credenciales inválidas"}), 401
