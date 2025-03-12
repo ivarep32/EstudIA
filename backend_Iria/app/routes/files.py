@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 import os
 from flasgger import swag_from
 """DEPENDEN DE LA BD"""
-from app.models import db, File, Subject, Participation
+from app.models import db, File, Participation
 
 files_bp = Blueprint('activities', __name__)
 
