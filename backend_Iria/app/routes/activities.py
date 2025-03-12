@@ -44,6 +44,8 @@ def get_activities():
     } for t in activities]), 200
 
 
+
+@activities_bp.route('/activities', methods=['POST'])
 @swag_from({
     'tags': ['activities'],
     'summary': 'Crear una nueva actividad',
@@ -70,7 +72,6 @@ def get_activities():
         401:{'description': 'no autorizado'}
     }
 })
-@activities_bp.route('/activities', methods=['POST'])
 @jwt_required()
 def add_activity():
     data = request.json
