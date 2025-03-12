@@ -41,6 +41,9 @@ group_bp = Blueprint('group', __name__)
 })
 @jwt_required()
 def add_subject(group_id):
+    group = db.session.get(Group, group_id)
+    if not group:
+        return jsonify({"message": "Group not found"}),404
     user_id = get_jwt_identity()
 
     if not GroupAdmin.query.filter_by(user_id=user_id, group_id=group_id).first():
@@ -211,6 +214,10 @@ def add_group_schedule(group_id):
 })
 @jwt_required()
 def get_group_schedules(group_id):
+    group = db.session.get(Group, group_id)
+    if not group:
+        return jsonify({"message": "Group not found"}),404
+    
     user_id = get_jwt_identity()
     participation = Participation.query.filter_by(user_id=user_id, group_id=group_id).first()
     if not participation:
