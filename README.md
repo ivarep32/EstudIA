@@ -16,6 +16,7 @@ La carpeta "frontend_Carla" contiene los archivos necesarios para el frontend
 
 El programa debe ejecutarse desde run.py (backend_Iria/run.py), es posible que ejecutar otros archivos por separado dé errores, pero esto se debe a direcciones de importación y no afectan al programa final.
 
+En la página principal no sale nada, pero si en la url se añade '/apidocs' se puede ver la documentación.
 =================== NOTAS DE DESARROLLO ===========================
 
 acabar de empatar frontend y backend
