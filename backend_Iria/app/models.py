@@ -69,16 +69,15 @@ class Subject(db.Model):
 class UserActivity(db.Model):
     __tablename__ = "user_activity"
     activity_id = db.Column(db.Integer, db.ForeignKey("activity.activity_id"), primary_key=True)  # UserActivity is an Activity
-    hours = db.Column(db.Numeric(3,2), nullable=False) # How many hours
-    period = db.Column(db.String(50), nullable=False) # Every how much (day, week, month)
+    hours = db.Column(db.Numeric(3,2), nullable=True) # How many hours
+    period = db.Column(db.String(50), nullable=True) # Every how much (day, week, month)
     user_id = db.Column(db.Integer, db.ForeignKey("user.user_id"), nullable=False)
-    subject_id = db.Column(db.Integer, db.ForeignKey("subject.activity_id"), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey("subject.activity_id"), nullable=True)
 
 # --- Schedule Table ---
 class Schedule(db.Model):
     __tablename__ = "schedule"
     schedule_id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey("group.group_id"), unique=True, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.user_id"), unique=True, nullable=True)
 
