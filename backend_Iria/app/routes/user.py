@@ -91,6 +91,61 @@ def get_subjects():
         } for s in subjects
     ]})
 
+@user_bp.route('/activities', methods=['GET'])
+@jwt_required()
+@swag_from({
+    'tags': ['User'],
+    'summary': 'Obtener las actividades del usuario',
+    'description': 'Devuelve todas las actividades propias del usuario',
+    'responses':{
+        200:{
+            'description': 'Lista de actividades',
+            'schema':{
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties':{
+                        'id': {'type': 'integer', 'example': 10},
+                        'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
+                        'difficulty': {'type': 'integer', 'example': 3},
+                        'priority': {'type': 'integer', 'example': 2},
+                        
+                        'day_of_week': {'type': 'string', 'example': 'Monday'},
+                        'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
+                        'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
+                        
+                        'hours': {'type': 'number', 'format': 'float', 'example': 2.5},
+                        'period': {'type': 'string', 'example': 'weekly'}
+                    }
+                }
+            }
+        },
+        401: {'description': 'No autorizado'}
+    }
+})
+def get_activities():
+    user_id = get_jwt_identity()
+    activities = UserActivity.query.filter_by(user_id=user_id).join(Activity).outerjoin(TimeSlot).all()
+    
+    return jsonify({"user_activities": [
+        {
+            "id": a.activity_id,
+            "name": a.name,
+            "difficulty" : a.difficulty,
+            "priority" : a.difficulty,
+            
+            "day_of_week": a.day_of_week,
+            "start_time": a.start_time.isoformat(),
+            "end_time": a.end_time.isoformat(),
+            
+            "hours" : a.hours,
+            "period" : a.period
+                        
+        } for a in activities
+    ]})
+
+
+
 @user_bp.route('/activity', methods=['POST'])
 @jwt_required()
 @swag_from({
@@ -110,7 +165,7 @@ def get_subjects():
                     'difficulty': {'type': 'integer', 'example': 4},
                     'priority': {'type': 'integer', 'example': 1},
                     'subject_id': {'type': 'integer', 'example': 2},
-                    'hours': {'type': 'number', 'example': 2.5},
+                    'hours': {'type': 'number', 'format': 'float', 'example': 2.5},
                     'period': {'type': 'string', 'example': 'weekly'}
                 }
             }
@@ -173,7 +228,6 @@ def add_activity():
             'schema': {
                 'type': 'object',
                 'properties': {
-                    'name': {'type': 'string', 'example': 'Horario de Clases'},
                     'timeslots': {
                         'type': 'array',
                         'items': {
@@ -201,11 +255,10 @@ def add_user_schedule():
 
     data = request.get_json()
 
-    if not data or 'name' not in data:
+    if not data:
         return jsonify({"message": "Invalid JSON format"}), 400
 
     new_schedule = Schedule(
-        name=data['name'],
         user_id=user_id
     )
     
@@ -243,14 +296,37 @@ def add_user_schedule():
                     'type': 'object',
                     'properties': {
                         'id': {'type': 'integer', 'example': 1},
-                        'name': {'type': 'string', 'example': 'Horario de clases'},
-                        'subjects': {
+                        'subjects':{
                             'type': 'array',
-                            'items': {
+                            'items':{
                                 'type': 'object',
-                                'properties': {
+                                'properties':{
                                     'id': {'type': 'integer', 'example': 10},
-                                    'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'}
+                                    'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
+                                    'difficulty': {'type': 'integer', 'example': 3},
+                                    'priority': {'type': 'integer', 'example': 2},
+                                    'day_of_week': {'type': 'string', 'example': 'Monday'},
+                                    'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
+                                    'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
+                                    'curriculum': {'type': 'string', 'example': 'Álgebra, Cálculo Diferencial'},
+                                    'professor': {'type': 'string', 'example': 'Dr. Juan Pérez'}
+                                }
+                            }
+                        },
+                        'user_activities':{
+                            'type': 'array',
+                            'items':{
+                                'type': 'object',
+                                'properties':{
+                                    'id': {'type': 'integer', 'example': 10},
+                                    'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
+                                    'difficulty': {'type': 'integer', 'example': 3},
+                                    'priority': {'type': 'integer', 'example': 2},
+                                    'day_of_week': {'type': 'string', 'example': 'Monday'},
+                                    'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
+                                    'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
+                                    'hours': {'type': 'number', 'format': 'float', 'example': 2.5},
+                                    'period': {'type': 'string', 'example': 'weekly'}
                                 }
                             }
                         }
@@ -282,22 +358,21 @@ def get_full_user_schedules():
             "schedules" :  [
                 {
                     "id": schedule.schedule_id,
-                    "name": schedule.name,
                     "subjects": [
                         {
-                            "id": sa.activity_id,
-                            "name": sa.name,
-                            "difficulty" : sa.difficulty,
-                            "priority" : sa.difficulty,
+                            "id": s.activity_id,
+                            "name": s.name,
+                            "difficulty" : s.difficulty,
+                            "priority" : s.difficulty,
                             
-                            "day_of_week": sa.day_of_week,
-                            "start_time": sa.start_time.isoformat(),
-                            "end_time": sa.end_time.isoformat(),
+                            "day_of_week": s.day_of_week,
+                            "start_time": s.start_time.isoformat(),
+                            "end_time": s.end_time.isoformat(),
                             
-                            "curriculum" : sa.curriculum,
-                            "professor" : sa.professor
+                            "curriculum" : s.curriculum,
+                            "professor" : s.professor
                                         
-                        } for sa in schedule_subjects
+                        } for s in schedule_subjects
                     ],
                     "user_activities": [
                         {
@@ -309,6 +384,9 @@ def get_full_user_schedules():
                             "day_of_week": sa.day_of_week,
                             "start_time": sa.start_time.isoformat(),
                             "end_time": sa.end_time.isoformat(),
+                            
+                            "hour": sa.hour,
+                            "period": sa.period
                         } for sa in schedule_user_activities
                     ]
                 }
