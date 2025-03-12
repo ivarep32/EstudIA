@@ -69,7 +69,7 @@ class Subject(db.Model):
 class UserActivity(db.Model):
     __tablename__ = "user_activity"
     activity_id = db.Column(db.Integer, db.ForeignKey("activity.activity_id"), primary_key=True)  # UserActivity is an Activity
-    hours = db.Column(db.Integer, nullable=False) # How many hours
+    hours = db.Column(db.Numeric(3,2), nullable=False) # How many hours
     period = db.Column(db.String(50), nullable=False) # Every how much (day, week, month)
     user_id = db.Column(db.Integer, db.ForeignKey("user.user_id"), nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey("subject.activity_id"), nullable=False)
