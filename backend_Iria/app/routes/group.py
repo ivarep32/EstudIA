@@ -340,6 +340,16 @@ def add_event(group_id):
                       pero no es obligatorio.""",
     'parameters': [
         {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {
             'name': 'body',
             'in': 'body',
             'required': True,
@@ -376,7 +386,7 @@ def add_group():
 
     admin = GroupAdmin(
         user_id=user_id,
-        group_id=new_group.id
+        group_id=new_group.group_id
     )
     db.session.add(admin)
 

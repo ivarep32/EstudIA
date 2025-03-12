@@ -36,7 +36,7 @@ auth_bp = Blueprint('auth', __name__)
 def register():
     data = request.json
 
-    if User.query.filter_by(email=data['email']).first():
+    if User.query.filter_by(username=data['username']).first():
         return jsonify({"error": "El usuario ya existe"}), 400
 
     user = User(username=data['username'], email=data['email'])
@@ -82,7 +82,7 @@ def login():
     data = request.json
     user = User.query.filter_by(username=data['username']).first()
     if user and user.check_password(data['password']):
-        token = create_access_token(identity=user.user_id)
+        token = create_access_token(identity=str(user.user_id))
         return jsonify({"access_token": token}), 200
 
     return jsonify({"error": "Credenciales inválidas"}), 401
