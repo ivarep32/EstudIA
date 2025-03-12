@@ -32,7 +32,7 @@ user_bp = Blueprint('user', __name__, url_prefix="/user")
 @jwt_required()
 def get_groups():
     user_id = get_jwt_identity()
-    groups = Group.query.join(Participation.query.filter_by(user_id=user_id)).all()
+    groups = Group.query.join(Participation.query.filter_by(user_id=user_id), Participation.group_id==Group.group_id).all()
     return jsonify([{
         "id": g.id,
         "name": g.name,
@@ -72,7 +72,7 @@ def get_groups():
 def get_subjects():
     user_id = get_jwt_identity()
     groups_query = Group.query.join(Participation.query.filter_by(user_id=user_id))
-    subjects = groups_query.join(TimeSlot).join(Subject).all()
+    subjects = groups_query.join(Subject, Subject.group_id==Group.group_id).join(TimeSlot, TimeSlot.activity_id==Subject.activity_id).all()
     
     return jsonify([
         {
@@ -125,7 +125,9 @@ def get_subjects():
 })
 def get_activities():
     user_id = get_jwt_identity()
-    activities = UserActivity.query.filter_by(user_id=user_id).join(Activity).outerjoin(TimeSlot).all()
+    activities = UserActivity.query.filter_by(user_id=user_id).\
+        join(Activity, Activity.activity_id==UserActivity.activity_id).\
+        outerjoin(TimeSlot, TimeSlot.activity_id==Activity.activity_id).all()
     
     return jsonify([
         {
@@ -341,19 +343,19 @@ def add_user_schedule():
 def get_full_user_schedules():
     user_id = get_jwt_identity()
 
-    groups = Group.query.join(Participation.query.filter_by(Participation.user_id==user_id))
+    groups = Participation.query.filter_by(user_id=user_id).join(Group, Participation.group_id==Group.group_id)
     
-    schedules_query = Schedule.query.join(groups)
+    schedules_query = Schedule.query.join(groups, Schedule.group_id==Group.group_id)
     schedules = schedules_query.all()
-    schedules.extend(Schedule.query.join(User.query.filter_by(user_id=user_id)).all())
-    
+    schedules.extend(User.query.filter_by(user_id=user_id).join(Schedule, Schedule.group_id==Group.group_id))
+
     if not schedules:
         return jsonify({"message": "No schedule found for this user"}), 404
     
     for schedule in schedules:
-        timeslot_query = TimeSlot.query.join(Schedule.query.filter_by(schedule_id = schedule.schedule_id)).join(Activity)
-        schedule_subjects = timeslot_query.join(Subject).all()
-        schedule_user_activities = timeslot_query.join(UserActivity).all()
+        timeslot_query = Schedule.query.filter_by(schedule_id = schedule.schedule_id).join(TimeSlot, TimeSlot.schedule_id==Schedule.schedule_id).join(Activity, Activity.activity_id==TimeSlot.activity_id)
+        schedule_subjects = timeslot_query.join(Subject, Subject.activity_id==TimeSlot.activity_id).all()
+        schedule_user_activities = timeslot_query.join(UserActivity, UserActivity.activity_id==TimeSlot.activity_id).all()
         schedule_data = [
                 {
                     "id": schedule.schedule_id,
