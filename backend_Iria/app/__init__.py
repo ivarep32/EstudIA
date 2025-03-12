@@ -10,6 +10,8 @@ from app.routes.auth import auth_bp
 from app.routes.notifications import notifications_bp
 from app.routes.schedules import schedule_bp
 from app.routes.activities import activities_bp
+from app.routes.group import group_bp
+from app.routes.user import user_bp
 
 
 def create_app():
@@ -28,5 +30,7 @@ def create_app():
     app.register_blueprint(schedule_bp)
     app.register_blueprint(activities_bp)
     app.register_blueprint(notifications_bp)
+    app.register_blueprint(group_bp)
+    app.register_blueprint(user_bp)
 
     return app
