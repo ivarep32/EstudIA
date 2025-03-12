@@ -60,6 +60,13 @@ class Subject(db.Model):
     curriculum = db.Column(db.Text, nullable=False)
     professor = db.Column(db.String(100), nullable=False)
 
+# --- File Table ---
+class File(db.Model):
+    file_id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(255), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subject.subject_id'), nullable=False)
+
 # --- User Activity Table ---
 class UserActivity(db.Model):
     __tablename__ = "user_activity"
