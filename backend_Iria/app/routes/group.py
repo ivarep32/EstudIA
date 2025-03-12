@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from flasgger import swag_from
 
 """DEPENDE DE LA BD"""
-from models import db, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group
+from app.models import db, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group
 
 group_bp = Blueprint('group', __name__)
 
@@ -80,29 +80,38 @@ def add_subject(group_id):
 @swag_from({
     'tags': ['group'],
     'summary': 'Crear un nuevo horario de grupo',
-    'description': 'Permite al crear un nuevo horario de grupo',
+    'description': 'Permite al usuario crear un nuevo horario de grupo',
     'parameters': [
-            {
+        {
             'name': 'body',
             'in': 'body',
             'required': True,
             'schema': {
                 'type': 'object',
                 'properties': {
-                    'activity_id': {'type': 'integer', 'example': 1},
-                    'day_of_week': {'type':'string', 'example': 'Martes'},
-                    'start_time': {'type': 'string', 'fromat':'time', 'example':'14.30.00'},
-                    'end_time':{'type': 'string', 'fromat':'time', 'example':'15.30.00'}
+                    'timeslots': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'activity_id': {'type': 'integer', 'example': 1},
+                                'day_of_week': {'type': 'string', 'example': 'Martes'},
+                                'start_time': {'type': 'string', 'format': 'time', 'example': '14:30:00'},
+                                'end_time': {'type': 'string', 'format': 'time', 'example': '15:30:00'}
+                            }
+                        }
+                    }
+                }
             }
         }
+    ],
+    'responses': {
+        201: {'description': 'Horario creado exitosamente'},
+        400: {'description': 'Datos inválidos'},
+        401: {'description': 'No autorizado'}
     }
-],
-'responses': {
-    201: {'description': 'horario creado exitosamente'},
-    400: {'description': 'datos inválidos'},
-    401: {'description': 'no autorizado'}
-}
 })
+
 @jwt_required()
 def add_group_schedule(group_id):
     """
@@ -217,7 +226,7 @@ def get_group_schedules(group_id):
     group = db.session.get(Group, group_id)
     if not group:
         return jsonify({"message": "Group not found"}),404
-    
+
     user_id = get_jwt_identity()
     participation = Participation.query.filter_by(user_id=user_id, group_id=group_id).first()
     if not participation:
