@@ -36,7 +36,7 @@ def get_groups():
     return jsonify([{
         "id": g.id,
         "name": g.name,
-        "parent_group" : g.supergroup_id
+        "parent_group": g.supergroup_id
     } for g in groups]), 200
 
 @user_bp.route('/subjects', methods=['GET'])
@@ -74,7 +74,7 @@ def get_subjects():
     groups_query = Group.query.join(Participation.query.filter_by(user_id=user_id))
     subjects = groups_query.join(TimeSlot).join(Subject).all()
     
-    return jsonify({"subjects": [
+    return jsonify([
         {
             "id": s.activity_id,
             "name": s.name,
@@ -89,7 +89,7 @@ def get_subjects():
             "professor" : s.professor
                         
         } for s in subjects
-    ]})
+    ]), 200
 
 @user_bp.route('/activities', methods=['GET'])
 @jwt_required()
@@ -127,7 +127,7 @@ def get_activities():
     user_id = get_jwt_identity()
     activities = UserActivity.query.filter_by(user_id=user_id).join(Activity).outerjoin(TimeSlot).all()
     
-    return jsonify({"user_activities": [
+    return jsonify([
         {
             "id": a.activity_id,
             "name": a.name,
@@ -142,7 +142,7 @@ def get_activities():
             "period" : a.period
                         
         } for a in activities
-    ]})
+    ]), 200
 
 
 
@@ -354,8 +354,7 @@ def get_full_user_schedules():
         timeslot_query = TimeSlot.query.join(Schedule.query.filter_by(schedule_id = schedule.schedule_id)).join(Activity)
         schedule_subjects = timeslot_query.join(Subject).all()
         schedule_user_activities = timeslot_query.join(UserActivity).all()
-        schedule_data = {
-            "schedules" :  [
+        schedule_data = [
                 {
                     "id": schedule.schedule_id,
                     "subjects": [
@@ -391,5 +390,4 @@ def get_full_user_schedules():
                     ]
                 }
             ]
-    }
     return jsonify(schedule_data), 200
