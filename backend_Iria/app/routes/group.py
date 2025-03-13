@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flasgger import swag_from
+from datetime import datetime, time
 
 """DEPENDE DE LA BD"""
 from app.models import db, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group, UserEvent
@@ -158,10 +159,10 @@ def add_group_schedule(group_id):
     
     for a in data["timeslots"]:
         timeslot = TimeSlot(            
-            schelude_id = new_schedule.schedule_id,
+            schedule_id = new_schedule.schedule_id,
             day_of_week = a["day_of_week"],
-            start_time = a["start_time"],
-            end_time = a["end_time"],
+            start_time = time.fromisoformat(a["start_time"]),
+            end_time = time.fromisoformat(a["end_time"]),
             
             activity_id = a["activity_id"]
         )
@@ -220,21 +221,6 @@ def add_group_schedule(group_id):
                                 'professor': {'type': 'string', 'example': 'Dr. Juan Pérez'}
                             }
                         }
-                    },
-                    'user_activities':{
-                        'type': 'array',
-                        'items':{
-                            'type': 'object',
-                            'properties':{
-                                'id': {'type': 'integer', 'example': 10},
-                                'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
-                                'difficulty': {'type': 'integer', 'example': 3},
-                                'priority': {'type': 'integer', 'example': 2},
-                                'day_of_week': {'type': 'string', 'example': 'Monday'},
-                                'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
-                                'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'}
-                            }
-                        }
                     }
                 }
             }
@@ -262,26 +248,28 @@ def get_group_schedules(group_id):
     if not schedule:
         return jsonify({"message": "No schedule found for this group"}), 404
     
-    activity_query = Activity.query.join(TimeSlot.query.filter_by(schedule_id = schedule.schedule_id))
-    schedule_subjects = activity_query.join(Subject, Subject.activity_id==Activity.activity_id).all()
+    schedule_subjects = db.session.query(Activity, Subject, TimeSlot)\
+        .join(Activity, Activity.activity_id == Subject.activity_id)\
+        .join(TimeSlot, TimeSlot.activity_id == Activity.activity_id)\
+        .filter(TimeSlot.schedule_id == schedule.schedule_id)
 
     schedule_data = {
         "id": schedule.schedule_id,
         "subjects": [
             {
-                "id": s.activity_id,
-                "name": s.name,
-                "difficulty" : s.difficulty,
-                "priority" : s.difficulty,
+                "id": activity.activity_id,
+                "name": activity.name,
+                "difficulty" : activity.difficulty,
+                "priority" : activity.difficulty,
                 
-                "day_of_week": s.day_of_week,
-                "start_time": s.start_time.isoformat(),
-                "end_time": s.end_time.isoformat(),
+                "day_of_week": timeslot.day_of_week,
+                "start_time": timeslot.start_time.isoformat(),
+                "end_time": timeslot.end_time.isoformat(),
                 
-                "curriculum" : s.curriculum,
-                "professor" : s.professor
+                "curriculum" : subject.curriculum,
+                "professor" : subject.professor
                             
-            } for s in schedule_subjects
+            } for activity, subject, timeslot in schedule_subjects
         ]
     }
     return jsonify(schedule_data), 200
@@ -309,12 +297,12 @@ def get_group_schedules(group_id):
             'required': True,
             'schema':{
                 'type': 'object',
-                'properties':{
-                        'start_time': {'type':'string', 'format': 'date-time', 'example':'11:30:00'},
-                        'end_time': {'type':'string', 'format': 'date-time', 'example':'13:00:00'},
-                        'type': {'type':'string', 'example': 'examen parcial'},
-                        'name': {'type': 'string', 'example': 'Examen de geografía'},
-                        'description': {'type': 'string', 'example': 'Estudiar los rios de europa'}
+                'properties': {
+                    'start_time': {'type':'string', 'format': 'date-time', 'example':'2025-03-12T13:30:00'},
+                    'end_time': {'type':'string', 'format': 'date-time', 'example':'2025-03-12T14:30:00'},
+                    'type': {'type':'string', 'example': 'examen parcial'},
+                    'name': {'type': 'string', 'example': 'Examen de geografía'},
+                    'description': {'type': 'string', 'example': 'Estudiar los rios de europa'},
                 }
             }
         }
@@ -341,8 +329,8 @@ def add_event(group_id):
         return jsonify({"message": "Invalid JSON format"}), 400
 
     event = Event(
-        start_time=data["start_time"],
-        end_time=data["end_time"],
+        start_time=datetime.fromisoformat(data["start_time"]),
+        end_time=datetime.fromisoformat(data["end_time"]),
         type=data["type"],
         name=data["name"],
         description=data["description"]
@@ -353,16 +341,16 @@ def add_event(group_id):
 
     group_event = GroupEvent(
         group_id=group_id,
-        event_id=event.id
+        event_id=event.event_id
     )
     db.session.add(group_event)
 
     participation = Participation.query.filter_by(group_id=group_id).all()
     for p in participation:
-        user_id = p["user_id"]
+        user_id = p.user_id
         user_event = UserEvent(
             user_id=user_id,
-            event_id=event.id,
+            event_id=event.event_id,
             completed=False,
             seen=False
         )
