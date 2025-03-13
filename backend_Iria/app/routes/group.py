@@ -4,7 +4,7 @@ from flasgger import swag_from
 from datetime import datetime, time
 
 """DEPENDE DE LA BD"""
-from app.models import db, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group, UserEvent
+from app.models import db, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group, UserEvent, User
 
 group_bp = Blueprint('group', __name__)
 
@@ -514,3 +514,78 @@ def add_group():
     db.session.commit()
 
     return jsonify({"message": "Grupo creado"}), 201
+
+@group_bp.route('/group/<int:group_id>', methods=['PUT'])
+@swag_from({
+    'summary': 'Add a user to a group',
+    'description': 'Allows a group admin to add a user to a specified group.',
+    'parameters': [
+        {
+            'name': 'group_id',
+            'in': 'path',
+            'type': 'integer',
+            'required': True,
+            'description': 'The ID of the group to which the user will be added.'
+        },
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {
+                        'type': 'integer',
+                        'description': 'The ID of the user to be added to the group.'
+                    }
+                },
+                'required': ['user_id']
+            }
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'User successfully added to the group',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string'}
+                }
+            }
+        },
+        400: {
+            'description': 'Invalid JSON format',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string'}
+                }
+            }
+        },
+        403: {
+            'description': 'Admin access required',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string'}
+                }
+            }
+        }
+    }
+})
+
+@jwt_required()
+def add_user_to_group(group_id):
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    if not data or 'name' not in data:
+        return jsonify({"message": "Invalid JSON format"}), 400
+
+    if not GroupAdmin.query.filter_by(user_id=user_id, group_id=group_id).first():
+        return jsonify({"message": "Admin access required"}), 403
+
+    new_user=Participation(user_id=data["user_id"], group_id=group_id)
+    db.session.add(new_user)
+    db.session.commit()
+
