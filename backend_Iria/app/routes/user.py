@@ -353,44 +353,17 @@ def add_user_schedule():
             'description': 'Lista de horarios',
             'schema': {
                 'type': 'array',
-                'items': {
+                'items':{
                     'type': 'object',
-                    'properties': {
-                        'id': {'type': 'integer', 'example': 1},
-                        'subjects':{
-                            'type': 'array',
-                            'items':{
-                                'type': 'object',
-                                'properties':{
-                                    'id': {'type': 'integer', 'example': 10},
-                                    'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
-                                    'difficulty': {'type': 'integer', 'example': 3},
-                                    'priority': {'type': 'integer', 'example': 2},
-                                    'day_of_week': {'type': 'string', 'example': 'Monday'},
-                                    'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
-                                    'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
-                                    'curriculum': {'type': 'string', 'example': 'Álgebra, Cálculo Diferencial'},
-                                    'professor': {'type': 'string', 'example': 'Dr. Juan Pérez'}
-                                }
-                            }
-                        },
-                        'user_activities':{
-                            'type': 'array',
-                            'items':{
-                                'type': 'object',
-                                'properties':{
-                                    'id': {'type': 'integer', 'example': 10},
-                                    'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
-                                    'difficulty': {'type': 'integer', 'example': 3},
-                                    'priority': {'type': 'integer', 'example': 2},
-                                    'day_of_week': {'type': 'string', 'example': 'Monday'},
-                                    'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
-                                    'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
-                                    'hours': {'type': 'number', 'format': 'float', 'example': 2.5},
-                                    'period': {'type': 'string', 'example': 'weekly'}
-                                }
-                            }
-                        }
+                    'properties':{
+                        'id': {'type': 'integer', 'example': 10},
+                        'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
+                        'difficulty': {'type': 'integer', 'example': 3},
+                        'priority': {'type': 'integer', 'example': 2},
+                        
+                        'day_of_week': {'type': 'string', 'example': 'Monday'},
+                        'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
+                        'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
                     }
                 }
             }
@@ -402,8 +375,7 @@ def add_user_schedule():
 def get_full_user_schedules():
     user_id = get_jwt_identity()
 
-    print("iii", flush=True)
-    result_groups = db.session.query(Schedule, Activity, Subject)\
+    result_groups = db.session.query(Schedule, TimeSlot, Activity)\
         .select_from(Schedule)\
         .join(Group, Schedule.group_id == Group.group_id)\
         .join(Participation, Participation.group_id == Group.group_id)\
@@ -411,7 +383,6 @@ def get_full_user_schedules():
         .join(Activity, Activity.activity_id == TimeSlot.activity_id)\
         .filter(Participation.user_id == user_id).all()
 
-    print("iii", flush=True)
     result_user = db.session.query(Schedule, TimeSlot, Activity)\
         .join(User, Schedule.user_id == User.user_id)\
         .join(TimeSlot, TimeSlot.schedule_id == Schedule.schedule_id)\
