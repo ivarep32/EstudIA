@@ -595,3 +595,93 @@ def add_user_to_group(group_id):
     return jsonify({"message": "Usuario añadido"}), 200
 
 
+@group_bp.route('/subjects/<int:group_id>', methods=['GET'])
+@swag_from({
+    'tags': ['Group'],
+    'summary': 'Obtiene las asignaturas de un grupo',
+    'description': 'Devuelve las asignaturas de un grupo con los asignaturas de un grupo.',
+    'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {
+            'name': 'group_id',
+            'in': 'path',
+            'required': True,
+            'type': 'integer',
+            'description': 'ID del grupo al q queremos ir'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Horario del grupo con sus materias y actividades',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'id': {'type': 'integer', 'example': '1'},
+                    'subjects': {
+                        'type': 'array', # a partir de aqui
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'activity_id': {'type': 'integer', 'example': 10},
+                                'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
+                                'description':{'type':'string', 'example':'No puedo seguir escribiendo codigo ni un solo segundo mas por favor make it end' },
+                                'difficulty': {'type': 'integer', 'example': 3},
+                                'curriculum': {'type': 'string', 'example': 'Esto no es vida, es el castigo que nos ha puesto, llamalo dios, llamalo energia, por que Eva se comio la manzana'},
+                                'professor': {'type': 'string', 'example': 'SATANÁS LLEVAME CONTIGO'}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        403: {'description': 'Acceso denegado. El usuario no pertenece al grupo.'},
+        404: {'description': 'Grupo o asignatura no encontrada.'}
+    }
+})
+@jwt_required()
+def get_group_subjects(group_id):
+    group = db.session.get(Group, group_id)
+    if not group:
+        return jsonify({"message": "Group not found"}), 404
+
+    user_id = get_jwt_identity()
+    participation = Participation.query.filter_by(user_id=user_id, group_id=group_id).first()
+    if not participation:
+        return jsonify({"message": "Group access required"}), 403
+
+    group = db.session.get(Group, group_id)
+    if not group:
+        return jsonify({"message": "Group not found"}), 404
+
+
+    subjects = db.session.query(Activity,Subject).join(Subject, Activity.activity_id==Subject.activity_id).filter(Subject.group_id==group_id).all()
+
+    if not subjects:
+        return jsonify({"message": "No subjects found for this group"}), 404
+
+    subject_list = [{
+        "activity_id": activity.activity_id,
+        "name": activity.name,
+        "description": activity.description,
+        "difficulty": activity.difficulty,
+        "priority": activity.priority,
+        "curriculum": subject.curriculum,
+        "professor": subject.professor
+    } for activity, subject in subjects]
+
+
+    return jsonify({
+        "group_id": group_id,
+        "subjects": subject_list
+    }), 200
+
+
