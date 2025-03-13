@@ -391,6 +391,9 @@ def get_full_user_schedules():
 
     result = []
     for schedule, timeslot, activity in (result_groups+result_user):
+        is_personal = True
+        if schedule.group_id is not None:
+            is_personal = False
         result.append(
             {
                 "id": activity.activity_id,
@@ -401,6 +404,8 @@ def get_full_user_schedules():
                 "day_of_week": timeslot.day_of_week,
                 "start_time": timeslot.start_time.isoformat(),
                 "end_time": timeslot.end_time.isoformat(),
+                
+                "is_personal": is_personal
             }
         )
     
