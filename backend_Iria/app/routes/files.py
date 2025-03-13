@@ -6,14 +6,13 @@ from flasgger import swag_from
 """DEPENDEN DE LA BD"""
 from app.models import db, File, Participation
 
-files_bp = Blueprint('activities', __name__)
+files_bp = Blueprint('files', __name__)
 
 UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)  # Ensure upload folder exists
 
 @files_bp.route('/files/<int:group_id>', methods=['GET'])
-
 @jwt_required
 def get_files(group_id):    
     user_id = get_jwt_identity()
@@ -34,6 +33,16 @@ def get_files(group_id):
     'summary': 'Upload a file',
     'description': 'Uploads a file and stores it in a group-specific folder.',
     'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
         {'name': 'group_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'ID of the group'},
         {'name': 'file', 'in': 'formData', 'type': 'file', 'required': True, 'description': 'File to upload'}
     ],

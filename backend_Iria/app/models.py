@@ -65,7 +65,7 @@ class Subject(db.Model):
     activity_id = db.Column(db.Integer, db.ForeignKey("activity.activity_id"), primary_key=True)  # Subject is an Activity
     group_id = db.Column(db.Integer, db.ForeignKey("group.group_id"), nullable=False)
     curriculum = db.Column(db.Text, nullable=False)
-    professor = db.Column(db.String(100), nullable=False)
+    professor = db.Column(db.String(255), nullable=False)
 
 # --- User Activity Table ---
 class UserActivity(db.Model):

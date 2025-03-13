@@ -4,15 +4,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flasgger import Swagger
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from datetime import timedelta
 from app.config import Config
 from app.models import db, bcrypt
 from app.routes.auth import auth_bp
-from app.routes.notifications import notifications_bp
-from app.routes.schedules import schedule_bp
-from app.routes.activities import activities_bp
 from app.routes.group import group_bp
 from app.routes.user import user_bp
-
+from app.routes.files import files_bp
 
 def create_app():
     app = Flask(__name__)
@@ -23,14 +21,14 @@ def create_app():
     CORS(app)
     Swagger(app)
 
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=365 * 100)
+    
     with app.app_context():
         db.create_all()
 
     app.register_blueprint(auth_bp)
-    app.register_blueprint(schedule_bp)
-    app.register_blueprint(activities_bp)
-    app.register_blueprint(notifications_bp)
     app.register_blueprint(group_bp)
     app.register_blueprint(user_bp)
-
+    #app.register_blueprint(files_bp)
+    
     return app

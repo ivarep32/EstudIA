@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flasgger import swag_from
+from datetime import date, datetime, time
 """DEPENDE DE LA BD"""
 from app.models import db, User, GroupAdmin, Participation, Schedule, Activity, Subject, UserActivity, TimeSlot, Event, GroupEvent, Group, UserEvent
 
@@ -10,6 +11,18 @@ user_bp = Blueprint('user', __name__, url_prefix="/user")
 @swag_from({
     'tags': ['User'],
     'summary':'Devuelve los grupos de un usurario',
+    'parameters':[
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        }
+    ],
     'responses':{
         200:{
             'description': 'lista de grupos',
@@ -32,9 +45,16 @@ user_bp = Blueprint('user', __name__, url_prefix="/user")
 @jwt_required()
 def get_groups():
     user_id = get_jwt_identity()
-    groups = Group.query.join(Participation.query.filter_by(user_id=user_id), Participation.group_id==Group.group_id).all()
+    
+    groups = (
+    db.session.query(Group)  # Ensure we're selecting Group objects
+    .join(Participation, Participation.group_id == Group.group_id)  # Join Participation with Group
+    .filter(Participation.user_id == user_id)  # Filter by user_id
+    .all()
+    )
+
     return jsonify([{
-        "id": g.id,
+        "id": g.group_id,
         "name": g.name,
         "parent_group": g.supergroup_id
     } for g in groups]), 200
@@ -45,6 +65,18 @@ def get_groups():
     'tags': ['User'],
     'summary': 'Obtener las materias del usuario',
     'description': 'Devuelve todas las materias relacionadas con los grupos del usuario',
+    'parameters':[
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        }
+    ],
     'responses':{
         200:{
             'description': 'Lista de materias',
@@ -57,9 +89,6 @@ def get_groups():
                         'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
                         'difficulty': {'type': 'integer', 'example': 3},
                         'priority': {'type': 'integer', 'example': 2},
-                        'day_of_week': {'type': 'string', 'example': 'Monday'},
-                        'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
-                        'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
                         'curriculum': {'type': 'string', 'example': 'Álgebra, Cálculo Diferencial'},
                         'professor': {'type': 'string', 'example': 'Dr. Juan Pérez'}
                     }
@@ -71,24 +100,25 @@ def get_groups():
 })
 def get_subjects():
     user_id = get_jwt_identity()
-    groups_query = Group.query.join(Participation.query.filter_by(user_id=user_id))
-    subjects = groups_query.join(Subject, Subject.group_id==Group.group_id).join(TimeSlot, TimeSlot.activity_id==Subject.activity_id).all()
     
+    db.session.query
+    result = db.session.query(Group,Activity,Subject,Participation)\
+        .join(Subject, Subject.group_id == Group.group_id)\
+        .join(Activity, Activity.activity_id == Subject.activity_id)\
+        .join(Participation, Participation.group_id == Group.group_id)\
+        .filter_by(user_id = user_id).all()
+        
     return jsonify([
         {
-            "id": s.activity_id,
-            "name": s.name,
-            "difficulty" : s.difficulty,
-            "priority" : s.difficulty,
+            "id": activity.activity_id,
+            "name": activity.name,
+            "difficulty" : activity.difficulty,
+            "priority" : activity.difficulty,
             
-            "day_of_week": s.day_of_week,
-            "start_time": s.start_time.isoformat(),
-            "end_time": s.end_time.isoformat(),
-            
-            "curriculum" : s.curriculum,
-            "professor" : s.professor
+            "curriculum" : subject.curriculum,
+            "professor" : subject.professor
                         
-        } for s in subjects
+        } for group, activity, subject, participation in result
     ]), 200
 
 @user_bp.route('/activities', methods=['GET'])
@@ -97,6 +127,18 @@ def get_subjects():
     'tags': ['User'],
     'summary': 'Obtener las actividades del usuario',
     'description': 'Devuelve todas las actividades propias del usuario',
+    'parameters':[
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        }
+    ],
     'responses':{
         200:{
             'description': 'Lista de actividades',
@@ -110,10 +152,6 @@ def get_subjects():
                         'difficulty': {'type': 'integer', 'example': 3},
                         'priority': {'type': 'integer', 'example': 2},
                         
-                        'day_of_week': {'type': 'string', 'example': 'Monday'},
-                        'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
-                        'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
-                        
                         'hours': {'type': 'number', 'format': 'float', 'example': 2.5},
                         'period': {'type': 'string', 'example': 'weekly'}
                     }
@@ -125,25 +163,21 @@ def get_subjects():
 })
 def get_activities():
     user_id = get_jwt_identity()
-    activities = UserActivity.query.filter_by(user_id=user_id).\
-        join(Activity, Activity.activity_id==UserActivity.activity_id).\
-        outerjoin(TimeSlot, TimeSlot.activity_id==Activity.activity_id).all()
+    result = db.session.query(Activity,UserActivity)\
+        .join(Activity, Activity.activity_id==UserActivity.activity_id)\
+        .filter(UserActivity.user_id==user_id).all()
     
     return jsonify([
         {
-            "id": a.activity_id,
-            "name": a.name,
-            "difficulty" : a.difficulty,
-            "priority" : a.difficulty,
+            "id": activity.activity_id,
+            "name": activity.name,
+            "difficulty" : activity.difficulty,
+            "priority" : activity.difficulty,
             
-            "day_of_week": a.day_of_week,
-            "start_time": a.start_time.isoformat(),
-            "end_time": a.end_time.isoformat(),
-            
-            "hours" : a.hours,
-            "period" : a.period
+            "hours" : user_activity.hours,
+            "period" : user_activity.period
                         
-        } for a in activities
+        } for activity, user_activity in result
     ]), 200
 
 
@@ -155,6 +189,16 @@ def get_activities():
     'summary': 'Añadir una actividad',
     'description': 'Permite al usuario añadir una nueva actividad',
     'parameters':[
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
         {
             'name': 'body',
             'in': 'body',
@@ -196,19 +240,12 @@ def add_activity():
     db.session.add(activity)
     db.session.flush()
     
-    if not "subject_id" in data:
-        data["subject_id"] = None
-    if not "hours" in data:
-        data["hours"] = None
-    if not "period" in data:
-        data["period"] = None
-    
     subject = UserActivity(
-        activity_id=activity,
+        activity_id=activity.activity_id,
         user_id=user_id,
-        subject_id=data["subject_id"],
-        hours=data["hours"],
-        period=data["period"]
+        subject_id=data.get("subject_id"),
+        hours=data.get("hours"),
+        period=data.get("period")
     )
         
     db.session.add(subject)
@@ -224,6 +261,16 @@ def add_activity():
     'description': 'Permite al usuario autenticado crear un nuevo horario con sus actividades.',
     'parameters': [
         {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {
             'name': 'body',
             'in': 'body',
             'required': True,
@@ -236,8 +283,8 @@ def add_activity():
                             'type': 'object',
                             'properties': {
                                 'day_of_week': {'type': 'string', 'example': 'Lunes'},
-                                'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
-                                'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
+                                'start_time': {'type':'string', 'format': 'date-time', 'example':'13:30:00'},
+                                'end_time': {'type':'string', 'format': 'date-time', 'example':'14:30:00'},
                                 'activity_id': {'type': 'integer', 'example': 5}
                             }
                         }
@@ -260,19 +307,19 @@ def add_user_schedule():
     if not data:
         return jsonify({"message": "Invalid JSON format"}), 400
 
-    new_schedule = Schedule(
+    schedule = Schedule(
         user_id=user_id
     )
     
-    db.session.add(new_schedule)
+    db.session.add(schedule)
     db.session.flush()
     
     for a in data["timeslots"]:
         timeslot = TimeSlot(            
-            schelude_id = new_schedule.schedule_id,
+            schedule_id = schedule.schedule_id,
             day_of_week = a["day_of_week"],
-            start_time = a["start_time"],
-            end_time = a["end_time"],
+            start_time=time.fromisoformat(a["start_time"]),
+            end_time=time.fromisoformat(a["end_time"]),
             
             activity_id = a["activity_id"]
         )
@@ -289,6 +336,18 @@ def add_user_schedule():
     'tags': ['User'],
     'summary': 'Obtener horarios del usuario',
     'description': 'Devuelve todos los horarios asociados al usuario autenticado.',
+    'parameters':[
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        }
+    ],
     'responses': {
         200: {
             'description': 'Lista de horarios',
@@ -343,52 +402,76 @@ def add_user_schedule():
 def get_full_user_schedules():
     user_id = get_jwt_identity()
 
-    groups = Participation.query.filter_by(user_id=user_id).join(Group, Participation.group_id==Group.group_id)
-    
-    schedules_query = Schedule.query.join(groups, Schedule.group_id==Group.group_id)
-    schedules = schedules_query.all()
-    schedules.extend(User.query.filter_by(user_id=user_id).join(Schedule, Schedule.group_id==Group.group_id))
+    print("iii", flush=True)
+    schedules = db.session.query(Schedule)\
+        .select_from(Schedule)\
+        .join(Group, Schedule.group_id == Group.group_id)\
+        .join(Participation, Participation.group_id == Group.group_id)\
+        .filter(Participation.user_id == user_id).all()
+
+    print("iii", flush=True)
+    schedules.extend(
+        db.session.query(Schedule)\
+            .select_from(Schedule)\
+            .join(User, Schedule.user_id == User.user_id)\
+            .filter(User.user_id == user_id).all()
+    )
 
     if not schedules:
         return jsonify({"message": "No schedule found for this user"}), 404
     
     for schedule in schedules:
-        timeslot_query = Schedule.query.filter_by(schedule_id = schedule.schedule_id).join(TimeSlot, TimeSlot.schedule_id==Schedule.schedule_id).join(Activity, Activity.activity_id==TimeSlot.activity_id)
-        schedule_subjects = timeslot_query.join(Subject, Subject.activity_id==TimeSlot.activity_id).all()
-        schedule_user_activities = timeslot_query.join(UserActivity, UserActivity.activity_id==TimeSlot.activity_id).all()
+        print(schedule.group_id, schedule.user_id)
+        print("iii", flush=True)
+        schedule_subjects = db.session.query(Activity,Subject,TimeSlot)\
+            .join(TimeSlot, TimeSlot.schedule_id==Schedule.schedule_id)\
+            .join(Activity, Activity.activity_id==TimeSlot.activity_id)\
+            .select_from(Activity)\
+            .join(Subject, Subject.activity_id==Activity.activity_id)\
+            .filter(TimeSlot.schedule_id == schedule.schedule_id)
+        
+        print("iii", flush=True)
+        schedule_activities = db.session.query(Activity,UserActivity,TimeSlot)\
+            .join(TimeSlot, TimeSlot.schedule_id==Schedule.schedule_id)\
+            .join(Activity, Activity.activity_id==TimeSlot.activity_id)\
+            .select_from(Activity)\
+            .join(UserActivity, UserActivity.activity_id==Activity.activity_id)\
+            .filter(TimeSlot.schedule_id == schedule.schedule_id)
+        
+        print("iii", flush=True)
         schedule_data = [
                 {
                     "id": schedule.schedule_id,
                     "subjects": [
                         {
-                            "id": s.activity_id,
-                            "name": s.name,
-                            "difficulty" : s.difficulty,
-                            "priority" : s.difficulty,
+                            "id": activity.activity_id,
+                            "name": activity.name,
+                            "difficulty" : activity.difficulty,
+                            "priority" : activity.difficulty,
                             
-                            "day_of_week": s.day_of_week,
-                            "start_time": s.start_time.isoformat(),
-                            "end_time": s.end_time.isoformat(),
+                            "day_of_week": timeslot.day_of_week,
+                            "start_time": timeslot.start_time.isoformat(),
+                            "end_time": timeslot.end_time.isoformat(),
                             
-                            "curriculum" : s.curriculum,
-                            "professor" : s.professor
+                            "curriculum" : subject.curriculum,
+                            "professor" : subject.professor
                                         
-                        } for s in schedule_subjects
+                        } for activity, subject, timeslot in schedule_subjects
                     ],
                     "user_activities": [
                         {
-                            "id": sa.activity_id,
-                            "name": sa.name,
-                            "difficulty" : sa.difficulty,
-                            "priority" : sa.difficulty,
+                            "id": activity.activity_id,
+                            "name": activity.name,
+                            "difficulty" : activity.difficulty,
+                            "priority" : activity.difficulty,
                             
-                            "day_of_week": sa.day_of_week,
-                            "start_time": sa.start_time.isoformat(),
-                            "end_time": sa.end_time.isoformat(),
+                            "day_of_week": timeslot.day_of_week,
+                            "start_time": timeslot.start_time.isoformat(),
+                            "end_time": timeslot.end_time.isoformat(),
                             
-                            "hour": sa.hour,
-                            "period": sa.period
-                        } for sa in schedule_user_activities
+                            "hour": user_activity.hour,
+                            "period": user_activity.period
+                        } for activity, user_activity, timeslot in schedule_activities
                     ]
                 }
             ]
@@ -403,12 +486,27 @@ def get_full_user_schedules():
     'description': 'Permite al usuario añadir un nuevo evento',
     'parameters': [
         {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {
             'name': 'body',
             'in': 'body',
             'required': True,
             'schema': {
                 'type': 'object',
                 'properties': {
+                    'start_time': {'type':'string', 'format': 'date-time', 'example':'2025-03-12T13:30:00'},
+                    'end_time': {'type':'string', 'format': 'date-time', 'example':'2025-03-12T14:30:00'},
+                    'type': {'type':'string', 'example': 'examen parcial'},
+                    'name': {'type': 'string', 'example': 'Examen de geografía'},
+                    'description': {'type': 'string', 'example': 'Estudiar los rios de europa'},
                     'completed': {'type':'boolean', 'example': False},
                     'seen': {'type':'boolean', 'example': False}
                 }
@@ -428,10 +526,10 @@ def add_event():
 
     if not data or 'name' not in data:
         return jsonify({"message": "Invalid JSON format"}), 400
-
+    
     event = Event(
-        start_time=data["start_time"],
-        end_time=data["end_time"],
+        start_time=datetime.fromisoformat(data["start_time"]),
+        end_time=datetime.fromisoformat(data["end_time"]),
         type=data["type"],
         name=data["name"],
         description=data["description"]
@@ -441,7 +539,7 @@ def add_event():
 
     user_event = UserEvent(
         user_id=user_id,
-        event_id=event.id,
+        event_id=event.event_id,
         completed=data['completed'],
         seen=data['seen']
     )
@@ -458,6 +556,18 @@ def add_event():
     'tags': ['User'],
     'summary': 'Obtener los eventos del usuario',
     'description': 'Devuelve todas los eventos relacionados con los grupos del usuario',
+    'parameters':[
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        }
+    ],
     'responses': { # falta
         200: {
             'description': 'Lista de eventos',
@@ -467,8 +577,8 @@ def add_event():
                     'type': 'object',
                     'properties': {
                         'id': {'type': 'integer', 'example': 10},
-'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
-                        'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
+                        'start_time': {'type':'string', 'format': 'date-time', 'example':'2025-03-12T13:30:00'},
+                        'end_time': {'type':'string', 'format': 'date-time', 'example':'2025-03-12T14:30:00'},
                         'type': {'type': 'string','example': 'examen'},
                         'name': {'type': 'string', 'example': 'Examen de Algebra'},
                         'description': {'type': 'string', 'example': 'Examen final de algebra, entran todos los temas'},
@@ -483,20 +593,22 @@ def add_event():
 })
 def get_events():
     user_id = get_jwt_identity()
-    events = UserEvent.query.filter_by(user_id=user_id).join(Event, Event.event_id == UserEvent.event_id).all()
+    events = db.session.query(Event, UserEvent)\
+        .join(Event, Event.event_id == UserEvent.event_id)\
+        .filter(UserEvent.user_id == user_id).all()
 
     return jsonify([
         {
-            "id": e.event_id,
-            "start_time": e.start_time.isoformat(),
-            "end_time": e.end_time.isoformat(),
-            "type": e.type,
-            "name": e.name,
-            "description": e.description,
+            "id": event.event_id,
+            "start_time": event.start_time.isoformat(),
+            "end_time": event.end_time.isoformat(),
+            "type": event.type,
+            "name": event.name,
+            "description": event.description,
 
-            "completed": e.completed,
-            "seen": e.seen
+            "completed": user_event.completed,
+            "seen": user_event.seen
 
-        } for e in events
+        } for event, user_event in events
     ]), 200
 

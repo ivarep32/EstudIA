@@ -15,6 +15,17 @@ group_bp = Blueprint('group', __name__)
     'description': 'Permite al usuario añadir una nueva asignatura',
     'parameters': [
         {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {'name': 'group_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'ID of the group'},
+        {
             'name': 'body',
             'in': 'body',
             'required': True,
@@ -25,9 +36,8 @@ group_bp = Blueprint('group', __name__)
                         'description': {'type': 'string', 'example': 'Estudiar los rios de europa'},
                         'difficulty': {'type': 'integer', 'example': 9999},
                         'priority': {'type': 'integer', 'example': 2},
-                        'course_id': {'type': 'integer', 'example': 3},
-                        'curricululm': {'type': 'string', 'example': 'nadie sabe lo que es'},
-                        'professor': {'type':'string','example': 'Víctor, hermano, siempre estás tragando,te ven en McDonalds y ya están preguntando El combo agrandado, las papas con queso, pero corre más lento que un caracol obeso'}
+                        'curriculum': {'type': 'string', 'example': 'Víctor, hermano, siempre estás tragando,te ven en McDonalds y ya están preguntando El combo agrandado, las papas con queso, pero corre más lento que un caracol obeso'},
+                        'professor': {'type':'string','example': 'Víctor'}
 
                 }
             }
@@ -64,7 +74,7 @@ def add_subject(group_id):
     db.session.flush()
     
     subject = Subject(
-        activity_id=activity,
+        activity_id=activity.activity_id,
         group_id=group_id,
         curriculum=data["curriculum"],
         professor=data["professor"]
@@ -82,6 +92,17 @@ def add_subject(group_id):
     'summary': 'Crear un nuevo horario de grupo',
     'description': 'Permite al usuario crear un nuevo horario de grupo',
     'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {'name': 'group_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'ID of the group'},
         {
             'name': 'body',
             'in': 'body',
@@ -158,6 +179,16 @@ def add_group_schedule(group_id):
     'summary': 'Obtiene el horario de un grupo',
     'description': 'Devuelve el horario de un grupo incluyendo las materias y actividades del usuario',
     'parameters':[
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
         {
             'name': 'group_id',
             'in':'path',
@@ -261,6 +292,17 @@ def get_group_schedules(group_id):
     'summary': 'Crear un nuevo evento',
     'description': 'Permite al usuario añadir un nuevo evento',
     'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {'name': 'group_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'ID of the group'},
         {
             'name': 'body',
             'in': 'body',
@@ -384,6 +426,12 @@ def add_group():
     db.session.add(new_group)
     db.session.flush()
 
+    participation = Participation(
+        user_id=user_id,
+        group_id=new_group.group_id
+    )
+    db.session.add(participation)
+    
     admin = GroupAdmin(
         user_id=user_id,
         group_id=new_group.group_id
