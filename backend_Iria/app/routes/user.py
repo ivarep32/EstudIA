@@ -364,6 +364,8 @@ def add_user_schedule():
                         'day_of_week': {'type': 'string', 'example': 'Monday'},
                         'start_time': {'type': 'string', 'format': 'time', 'example': '08:00:00'},
                         'end_time': {'type': 'string', 'format': 'time', 'example': '10:00:00'},
+                        
+                        'is_personal': {'type':'boolean', 'example': False},
                     }
                 }
             }
@@ -372,7 +374,7 @@ def add_user_schedule():
         401: {'description': 'No autorizado'}
     }
 })
-def get_full_user_schedules():
+def get_full_user_schedule():
     user_id = get_jwt_identity()
 
     result_groups = db.session.query(Schedule, TimeSlot, Activity)\
