@@ -13,7 +13,7 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)  # Ensure upload folder exists
 
 @files_bp.route('/files/<int:group_id>', methods=['GET'])
-@jwt_required
+@jwt_required()
 def get_files(group_id):    
     user_id = get_jwt_identity()
     
@@ -52,7 +52,7 @@ def get_files(group_id):
         401: {'description': 'The user has no access to the group'}
     }
 })
-@jwt_required
+@jwt_required()
 def upload_file(group_id):
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
@@ -76,7 +76,7 @@ def upload_file(group_id):
         return jsonify({"message": "File uploaded successfully!", "file_id": new_file.file_id}), 200
 
 @files_bp.route('/download/<int:file_id>', methods=['GET'])
-@jwt_required
+@jwt_required()
 def download_file(file_id):
     user_id = get_jwt_identity()
     
