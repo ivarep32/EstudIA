@@ -504,7 +504,7 @@ def add_event():
             }
         }
     ],
-    'responses': { # falta
+    'responses': {
         200: {
             'description': 'Lista de eventos',
             'schema': {
