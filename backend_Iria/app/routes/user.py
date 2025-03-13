@@ -403,79 +403,37 @@ def get_full_user_schedules():
     user_id = get_jwt_identity()
 
     print("iii", flush=True)
-    schedules = db.session.query(Schedule)\
+    result_groups = db.session.query(Schedule, Activity, Subject)\
         .select_from(Schedule)\
         .join(Group, Schedule.group_id == Group.group_id)\
         .join(Participation, Participation.group_id == Group.group_id)\
+        .join(TimeSlot, TimeSlot.schedule_id == Schedule.schedule_id)\
+        .join(Activity, Activity.activity_id == TimeSlot.activity_id)\
         .filter(Participation.user_id == user_id).all()
 
     print("iii", flush=True)
-    schedules.extend(
-        db.session.query(Schedule)\
-            .select_from(Schedule)\
-            .join(User, Schedule.user_id == User.user_id)\
-            .filter(User.user_id == user_id).all()
-    )
+    result_user = db.session.query(Schedule, TimeSlot, Activity)\
+        .join(User, Schedule.user_id == User.user_id)\
+        .join(TimeSlot, TimeSlot.schedule_id == Schedule.schedule_id)\
+        .join(Activity, Activity.activity_id == TimeSlot.activity_id)\
+        .filter(User.user_id == user_id).all()
 
-    if not schedules:
-        return jsonify({"message": "No schedule found for this user"}), 404
+    result = []
+    for schedule, timeslot, activity in (result_groups+result_user):
+        result.append(
+            {
+                "id": activity.activity_id,
+                "name": activity.name,
+                "difficulty" : activity.difficulty,
+                "priority" : activity.difficulty,
+                
+                "day_of_week": timeslot.day_of_week,
+                "start_time": timeslot.start_time.isoformat(),
+                "end_time": timeslot.end_time.isoformat(),
+            }
+        )
     
-    for schedule in schedules:
-        print(schedule.group_id, schedule.user_id)
-        print("iii", flush=True)
-        schedule_subjects = db.session.query(Activity,Subject,TimeSlot)\
-            .join(TimeSlot, TimeSlot.schedule_id==Schedule.schedule_id)\
-            .join(Activity, Activity.activity_id==TimeSlot.activity_id)\
-            .select_from(Activity)\
-            .join(Subject, Subject.activity_id==Activity.activity_id)\
-            .filter(TimeSlot.schedule_id == schedule.schedule_id)
-        
-        print("iii", flush=True)
-        schedule_activities = db.session.query(Activity,UserActivity,TimeSlot)\
-            .join(TimeSlot, TimeSlot.schedule_id==Schedule.schedule_id)\
-            .join(Activity, Activity.activity_id==TimeSlot.activity_id)\
-            .select_from(Activity)\
-            .join(UserActivity, UserActivity.activity_id==Activity.activity_id)\
-            .filter(TimeSlot.schedule_id == schedule.schedule_id)
-        
-        print("iii", flush=True)
-        schedule_data = [
-                {
-                    "id": schedule.schedule_id,
-                    "subjects": [
-                        {
-                            "id": activity.activity_id,
-                            "name": activity.name,
-                            "difficulty" : activity.difficulty,
-                            "priority" : activity.difficulty,
-                            
-                            "day_of_week": timeslot.day_of_week,
-                            "start_time": timeslot.start_time.isoformat(),
-                            "end_time": timeslot.end_time.isoformat(),
-                            
-                            "curriculum" : subject.curriculum,
-                            "professor" : subject.professor
-                                        
-                        } for activity, subject, timeslot in schedule_subjects
-                    ],
-                    "user_activities": [
-                        {
-                            "id": activity.activity_id,
-                            "name": activity.name,
-                            "difficulty" : activity.difficulty,
-                            "priority" : activity.difficulty,
-                            
-                            "day_of_week": timeslot.day_of_week,
-                            "start_time": timeslot.start_time.isoformat(),
-                            "end_time": timeslot.end_time.isoformat(),
-                            
-                            "hour": user_activity.hour,
-                            "period": user_activity.period
-                        } for activity, user_activity, timeslot in schedule_activities
-                    ]
-                }
-            ]
-    return jsonify(schedule_data), 200
+    return jsonify(result), 200
 
 
 @user_bp.route('/event', methods=['POST'])
