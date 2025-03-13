@@ -13,6 +13,48 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)  # Ensure upload folder exists
 
 @files_bp.route('/files/<int:group_id>', methods=['GET'])
+@swag_from({
+    'tags': ['Files'],
+    'summary': 'Ver los archivos del grupo',
+    'description': 'Devuelve la lista de archivos del grupo',
+    'parameters':[
+    {
+        'name': 'Authorization',
+        'in': 'header',
+        'required': True,
+        'description': 'Bearer token for authentication',
+        'schema': {
+            'type': 'string',
+            'example': 'Bearer <your_jwt_token>'
+        }
+    },
+    {
+        'name': 'group_id',
+        'in': 'path',
+        'required': True,
+        'type': 'integer',
+        'description': 'Identificador del grupo',
+
+    }
+    ],
+    'responses': {
+        200:{
+            'description': 'Lista de archivos del grupo',
+            'schema': {
+                'type': 'array',
+                'items':{
+                    'type': 'object',
+                    'properties': {
+                        'id':{'type':'integer','example':1},
+                        'filename':{'type':'string','example':'file.txt'},
+
+                    }
+                }
+            }
+        },
+        401: {'description': 'el usuario no pertenece al grupo'}
+    }
+})
 @jwt_required()
 def get_files(group_id):    
     user_id = get_jwt_identity()
@@ -76,6 +118,41 @@ def upload_file(group_id):
         return jsonify({"message": "File uploaded successfully!", "file_id": new_file.file_id}), 200
 
 @files_bp.route('/download/<int:file_id>', methods=['GET'])
+@swag_from({
+    'tags': ['Files'],
+    'summary': 'Download a file',
+    'description': 'Downloads a file and stores it in a group-specific folder.',
+    'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {
+            'name': 'file_id',
+            'in': 'path',
+            'type': 'integer',
+            'required': True,
+            'description': 'ID of the file to download'
+         }
+    ],
+    'responses': {
+        200:{
+            'description': 'El archivo se descarga correctamente',
+            'schema': {
+                'type': 'file'
+            }
+        },
+        401: {'description': 'El usuario no pertenece al grupo'},
+        404: {'description': 'Archivo no encontrado'}
+    }
+
+})
 @jwt_required()
 def download_file(file_id):
     user_id = get_jwt_identity()
