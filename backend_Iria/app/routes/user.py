@@ -7,6 +7,57 @@ from app.models import db, User, GroupAdmin, Participation, Schedule, Activity, 
 
 user_bp = Blueprint('user', __name__, url_prefix="/user")
 
+
+@user_bp.route('/by_username/<username>', methods=['GET'])
+@swag_from({
+    'tags': ['User'],
+    'summary': 'Devuelve la id de un usuario',
+    'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {
+            'name': 'username',
+            'in': 'path',
+            'required': True,
+            'type': 'string',
+            'description': 'username del usuario'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'User ID returned successfully',
+            'schema': {
+                'type': 'object',  # Define the response type as an object
+                'properties': {
+                    'id': {
+                        'type': 'integer',
+                        'example': 1
+                    }
+                }
+            }
+        },
+    }
+})
+@jwt_required()
+def get_user_id(username):
+    user = db.session.query(User).filter(User.username == username).first()
+
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    return jsonify({
+        "id": user.user_id
+    }), 200
+
+
 @user_bp.route('/groups', methods=['GET'])
 @swag_from({
     'tags': ['User'],

@@ -748,13 +748,11 @@ def get_group_users(group_id):
     if not users:
         return jsonify({"message": "No users found for this group"}), 404
 
-    user_llist = [{
+    user_list = [{
         "id": user.user_id,
         "username": user.username
     } for user in users]
 
 
-    return jsonify({
-        user_llist
-    }), 200
+    return jsonify(user_list), 200
 
