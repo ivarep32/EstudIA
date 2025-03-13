@@ -47,7 +47,8 @@ group_bp = Blueprint('group', __name__)
     'responses':{
         201:{'description': 'actividad creada exitosamente'},
         400:{'description': 'datos inválidos'},
-        401:{'description': 'no autorizado'}
+        401:{'description': 'no autorizado'},
+        404: {'descrption': 'group not found'},
     }
 })
 @jwt_required()
@@ -58,7 +59,7 @@ def add_subject(group_id):
     user_id = get_jwt_identity()
 
     if not GroupAdmin.query.filter_by(user_id=user_id, group_id=group_id).first():
-        return jsonify({"message": "Admin access required"}), 403
+        return jsonify({"message": "Admin access required"}), 401
 
     data = request.get_json()
 
@@ -130,7 +131,8 @@ def add_subject(group_id):
     'responses': {
         201: {'description': 'Horario creado exitosamente'},
         400: {'description': 'Datos inválidos'},
-        401: {'description': 'No autorizado'}
+        401: {'description': 'No autorizado'},
+        404: {'descrption': 'group not found'}
     }
 })
 
@@ -143,7 +145,7 @@ def add_group_schedule(group_id):
     user_id = get_jwt_identity()
 
     if not GroupAdmin.query.filter_by(user_id=user_id, group_id=group_id).first():
-        return jsonify({"message": "Admin access required"}), 403
+        return jsonify({"message": "Admin access required"}), 401
 
     data = request.get_json()
 
@@ -316,7 +318,8 @@ def get_group_schedules(group_id):
     'responses':{
         201:{'description': 'actividad creada exitosamente'},
         400:{'description': 'datos inválidos'},
-        401:{'description': 'no autorizado'}
+        403:{'description': 'no autorizado'},
+        404: {'descrption': 'group not found'}
     }
 })
 @jwt_required()
@@ -403,7 +406,9 @@ def add_event(group_id):
     'responses':{
         201:{'description': 'actividad creada exitosamente'},
         400:{'description': 'datos inválidos'},
-        401:{'description': 'no autorizado'}
+        403:{'description': 'no autorizado'},
+        404: {'descrption': 'event not found'}
+
     }
 })
 @jwt_required()
@@ -480,7 +485,6 @@ def modify_event(event_id):
     'responses': {
         201: {'description': 'Grupo creado exitosamente'},
         400: {'description': 'Datos inválidos'},
-        401: {'description': 'No autorizado'}
     }
 })
 
@@ -588,4 +592,6 @@ def add_user_to_group(group_id):
     new_user=Participation(user_id=data["user_id"], group_id=group_id)
     db.session.add(new_user)
     db.session.commit()
+    return jsonify({"message": "Usuario añadido"}), 200
+
 

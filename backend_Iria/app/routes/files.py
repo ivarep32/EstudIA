@@ -171,7 +171,7 @@ def download_file(file_id):
     file = File.query.get(file_id)
     
     if file:
-        return send_file(file.file_path, as_attachment=True, download_name=file.filename)
+        return send_file(file.file_path, as_attachment=True, download_name=file.filename), 200
     
     return jsonify({"error": "File not found"}), 404
 
@@ -197,7 +197,8 @@ def download_file(file_id):
     ],
     'responses': {
         200: {'description': 'File removed successfully'},
-        401: {'description': 'The user has no access to the group'}
+        401: {'description': 'The user has no access to the group'},
+        404: {'description': 'File not found'}
     }
 })
 @jwt_required()

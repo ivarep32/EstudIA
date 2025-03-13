@@ -39,7 +39,6 @@ user_bp = Blueprint('user', __name__, url_prefix="/user")
 
             }
         },
-        401: {'description': 'No autorizado'}
     }
 })
 @jwt_required()
@@ -47,9 +46,9 @@ def get_groups():
     user_id = get_jwt_identity()
     
     groups = (
-    db.session.query(Group)  # Ensure we're selecting Group objects
-    .join(Participation, Participation.group_id == Group.group_id)  # Join Participation with Group
-    .filter(Participation.user_id == user_id)  # Filter by user_id
+    db.session.query(Group)
+    .join(Participation, Participation.group_id == Group.group_id)
+    .filter(Participation.user_id == user_id)
     .all()
     )
 
@@ -95,7 +94,6 @@ def get_groups():
                 }
             }
         },
-        401: {'description': 'No autorizado'}
     }
 })
 def get_subjects():
@@ -158,7 +156,6 @@ def get_subjects():
                 }
             }
         },
-        401: {'description': 'No autorizado'}
     }
 })
 def get_activities():
@@ -220,7 +217,6 @@ def get_activities():
     'responses':{
         201: {'description': 'Actividad añadida exitosamente'},
         400: {'description': 'Datos inválidos'},
-        401: {'description': 'No autorizado'}
     }
 })
 def add_activity():
@@ -296,7 +292,6 @@ def add_activity():
     'responses': {
         201: {'description': 'Horario añadido exitosamente'},
         400: {'description': 'Formato JSON inválido'},
-        401: {'description': 'No autorizado'}
     }
 })
 def add_user_schedule():
@@ -370,8 +365,6 @@ def add_user_schedule():
                 }
             }
         },
-        404: {'description': 'No se encontraron horarios'},
-        401: {'description': 'No autorizado'}
     }
 })
 def get_full_user_schedule():
@@ -452,7 +445,6 @@ def get_full_user_schedule():
     'responses': {
         201: {'description': 'Evento añadido exitosamente'},
         400: {'description': 'Datos inválidos'},
-        401: {'description': 'No autorizado'}
     }
 })
 def add_event():
@@ -524,7 +516,6 @@ def add_event():
                 }
             }
         },
-        401: {'description': 'No autorizado'}
     }
 })
 def get_events():
