@@ -684,4 +684,77 @@ def get_group_subjects(group_id):
         "subjects": subject_list
     }), 200
 
+@group_bp.route('/users/<int:group_id>', methods=['GET'])
+@swag_from({
+    'tags': ['Group'],
+    'summary': 'Obtiene las asignaturas de un grupo',
+    'description': 'Devuelve las asignaturas de un grupo con los asignaturas de un grupo.',
+    'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {
+            'name': 'group_id',
+            'in': 'path',
+            'required': True,
+            'type': 'integer',
+            'description': 'ID del grupo al q queremos ir'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Usuarios del grupo',
+            'schema': {
+                'type': 'array', # a partir de aqui
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer', 'example': 10},
+                        'username': {'type': 'string', 'example': 'Matemáticas Avanzadas'}
+                    }
+                }
+            }
+        },
+        403: {'description': 'Acceso denegado. El usuario no pertenece al grupo.'},
+        404: {'description': 'Grupo o asignatura no encontrada.'}
+    }
+})
+@jwt_required()
+def get_group_users(group_id):
+    group = db.session.get(Group, group_id)
+    if not group:
+        return jsonify({"message": "Group not found"}), 404
+
+    user_id = get_jwt_identity()
+    participation = Participation.query.filter_by(user_id=user_id, group_id=group_id).first()
+    if not participation:
+        return jsonify({"message": "Group access required"}), 403
+
+    group = db.session.get(Group, group_id)
+    if not group:
+        return jsonify({"message": "Group not found"}), 404
+
+
+    users = db.session.query(User).join(Participation, User.user_id==Participation.user_id)\
+        .filter(Participation.group_id==group_id).all()
+
+    if not users:
+        return jsonify({"message": "No users found for this group"}), 404
+
+    user_llist = [{
+        "id": user.user_id,
+        "username": user.username
+    } for user in users]
+
+
+    return jsonify({
+        user_llist
+    }), 200
 
