@@ -11,7 +11,7 @@ group_bp = Blueprint('group', __name__)
 
 @group_bp.route('/subject/<int:group_id>', methods=['POST'])
 @swag_from({
-    'tags': ['group'],
+    'tags': ['Group'],
     'summary': 'Crear una nueva asignatura',
     'description': 'Permite al usuario añadir una nueva asignatura',
     'parameters': [
@@ -89,7 +89,7 @@ def add_subject(group_id):
 
 @group_bp.route('/schedule/<int:group_id>', methods=['POST'])
 @swag_from({
-    'tags': ['group'],
+    'tags': ['Group'],
     'summary': 'Crear un nuevo horario de grupo',
     'description': 'Permite al usuario crear un nuevo horario de grupo',
     'parameters': [
@@ -176,7 +176,7 @@ def add_group_schedule(group_id):
 
 @group_bp.route('/schedules/<int:group_id>', methods=['GET'])
 @swag_from({
-    'tags': ['group'],
+    'tags': ['Group'],
     'summary': 'Obtiene el horario de un grupo',
     'description': 'Devuelve el horario de un grupo incluyendo las materias y actividades del usuario',
     'parameters':[
@@ -276,7 +276,7 @@ def get_group_schedules(group_id):
 
 @group_bp.route('/event/<int:group_id>', methods=['POST'])
 @swag_from({
-    'tags': ['group'],
+    'tags': ['Group'],
     'summary': 'Crear un nuevo evento',
     'description': 'Permite al usuario añadir un nuevo evento',
     'parameters': [
