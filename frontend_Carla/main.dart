@@ -33,10 +33,10 @@ class _HomePageState extends State<HomePage> {
   String _usuario = "Usuario";
   String _estadoAnimo = "Normal";
   List<Map<String, dynamic>> _grupos = [
-    {"nombre": "Matemáticas Avanzadas", "admin": true},
-    {"nombre": "Física General", "admin": false},
-    {"nombre": "Club de Programación", "admin": false},
-    {"nombre": "Historia del Arte", "admin": true},
+    {"nombre": "Matemáticas Avanzadas", "admin": true, "miembros": ["Ana", "Carlos", "Lucía"]},
+    {"nombre": "Física General", "admin": false, "miembros": ["Pedro", "María", "Javier"]},
+    {"nombre": "Club de Programación", "admin": false, "miembros": ["Elena", "David"]},
+    {"nombre": "Historia del Arte", "admin": true, "miembros": ["Sofía", "Martín"]},
   ];
 
   final List<Widget> _pages = [
@@ -162,11 +162,20 @@ class _HomePageState extends State<HomePage> {
   }
 
 
-  void _abrirPerfil() {
+ void _abrirPerfil() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PerfilPage(usuario: _usuario, estadoAnimo: _estadoAnimo, grupos: _grupos),
+        builder: (context) => PerfilPage(
+          usuario: _usuario,
+          estadoAnimo: _estadoAnimo,
+          grupos: _grupos,
+          actualizarGrupos: (nuevosGrupos) {
+            setState(() {
+              _grupos = nuevosGrupos;
+            });
+          },
+        ),
       ),
     );
   }
@@ -204,43 +213,72 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class PerfilPage extends StatelessWidget {
+class PerfilPage extends StatefulWidget {
   final String usuario;
   final String estadoAnimo;
   final List<Map<String, dynamic>> grupos;
+  final Function(List<Map<String, dynamic>>) actualizarGrupos;
 
-  PerfilPage({required this.usuario, required this.estadoAnimo, required this.grupos});
+  PerfilPage({required this.usuario, required this.estadoAnimo, required this.grupos, required this.actualizarGrupos});
+
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Perfil de $usuario")),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Nombre: $usuario", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            Text("Estado de ánimo: $estadoAnimo", style: TextStyle(fontSize: 18)),
-            Divider(height: 30, thickness: 2),
-            Text("Grupos de estudio:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            Expanded(
-              child: ListView.builder(
-                itemCount: grupos.length,
-                itemBuilder: (context, index) {
-                  final grupo = grupos[index];
-                  return ListTile(
-                    leading: Icon(grupo["admin"] ? Icons.admin_panel_settings : Icons.group),
-                    title: Text(grupo["nombre"]),
-                    subtitle: Text(grupo["admin"] ? "Administrador" : "Miembro"),
-                  );
-                },
-              ),
+  _PerfilPageState createState() => _PerfilPageState();
+}
+
+class _PerfilPageState extends State<PerfilPage> {
+  void _agregarMiembro(int index) {
+    String nuevoMiembro = "";
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Añadir Miembro"),
+          content: TextField(
+            decoration: InputDecoration(labelText: "Nombre del nuevo miembro"),
+            onChanged: (value) => nuevoMiembro = value,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                if (nuevoMiembro.isNotEmpty) {
+                  setState(() {
+                    widget.grupos[index]["miembros"].add(nuevoMiembro);
+                  });
+                  widget.actualizarGrupos(widget.grupos);
+                  Navigator.pop(context);
+                }
+              },
+              child: Text("Agregar"),
             ),
           ],
-        ),
+        );
+      },
+    );
+  }
+@override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Perfil de ${widget.usuario}")),
+      body: ListView(
+        padding: EdgeInsets.all(16),
+        children: [
+          Text("Estado de ánimo: ${widget.estadoAnimo}", style: TextStyle(fontSize: 18)),
+          Divider(height: 30, thickness: 2),
+          Text("Grupos de estudio:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ...widget.grupos.map((grupo) {
+            return ListTile(
+              title: Text(grupo["nombre"]),
+              subtitle: Text("Miembros: ${grupo["miembros"].join(", ")}"),
+              trailing: grupo["admin"]
+                  ? IconButton(
+                      icon: Icon(Icons.person_add, color: Colors.blue),
+                      onPressed: () => _agregarMiembro(widget.grupos.indexOf(grupo)),
+                    )
+                  : null,
+            );
+          }).toList(),
+        ],
       ),
     );
   }
@@ -322,12 +360,20 @@ class _HorariosPageState extends State<HorariosPage> with AutomaticKeepAliveClie
     Colors.purple,
     Colors.teal,
     Colors.brown,
+    Colors.pinkAccent,
   ];
   bool _mostrarNotificacion = false;
   String _mensajeNotificacion = '';
 
   final List<String> diasSemana = [
     "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"
+  ];
+
+  List<Map<String, dynamic>> _grupos = [
+    {"nombre": "Matemáticas Avanzadas", "esAdmin": true},
+    {"nombre": "Física Cuántica", "esAdmin": false},
+    {"nombre": "Historia Universal", "esAdmin": true},
+    {"nombre": "Desarrollo de Software", "esAdmin": false},
   ];
 
   @override
@@ -406,6 +452,11 @@ class _HorariosPageState extends State<HorariosPage> with AutomaticKeepAliveClie
     String diaSeleccionado = diasSemana.first;
     TimeOfDay horaInicio = TimeOfDay(hour: 8, minute: 0);
     TimeOfDay horaFin = TimeOfDay(hour: 9, minute: 0);
+    String tipoHorario = "personal";
+    String grupoSeleccionado = _grupos.firstWhere((g) => g["esAdmin"], orElse: () => {"nombre": ""})["nombre"];
+
+    List<Map<String, dynamic>> gruposAdmin = _grupos.where((g) => g["esAdmin"]).toList();
+    bool mostrarOpcionGrupo = gruposAdmin.isNotEmpty;
 
     Future<void> seleccionarHora(BuildContext context, bool esInicio) async {
       final TimeOfDay? seleccionada = await showTimePicker(
@@ -414,21 +465,19 @@ class _HorariosPageState extends State<HorariosPage> with AutomaticKeepAliveClie
       );
 
       if (seleccionada != null) {
-        if (esInicio) {
-          horaInicio = seleccionada;
-        } else {
-          horaFin = seleccionada;
-        }
-        // Forzar reconstrucción del diálogo
-        Navigator.pop(context);
-        _mostrarDialogoAgregarHorario();
+        setState(() {
+          if (esInicio) {
+            horaInicio = seleccionada;
+          } else {
+            horaFin = seleccionada;
+          }
+        });
       }
     }
-
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (context, setStateDialog) {
           return AlertDialog(
             title: Text("Agregar Nuevo Horario"),
             content: Form(
@@ -439,297 +488,117 @@ class _HorariosPageState extends State<HorariosPage> with AutomaticKeepAliveClie
                   children: [
                     TextFormField(
                       onChanged: (value) => asignatura = value,
-                      decoration: InputDecoration(
-                        labelText: "Asignatura",
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor, ingrese el nombre de la asignatura';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: diaSeleccionado,
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              diaSeleccionado = newValue!;
-                            });
-                          },
-                          items: diasSemana.map((dia) {
-                            return DropdownMenuItem(
-                              value: dia,
-                              child: Text(dia),
-                            );
-                          }).toList(),
-                        ),
-                      ),
+                      decoration: InputDecoration(labelText: "Asignatura", border: OutlineInputBorder()),
+                      validator: (value) => value == null || value.isEmpty ? 'Ingrese una asignatura' : null,
+                    ), 
+                           SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: diaSeleccionado,
+                      items: diasSemana.map((dia) => DropdownMenuItem(value: dia, child: Text(dia))).toList(),
+                      onChanged: (value) => setStateDialog(() => diaSeleccionado = value!),
+                      decoration: InputDecoration(labelText: "Día de la semana", border: OutlineInputBorder()),
                     ),
                     SizedBox(height: 16),
                     ListTile(
-                      title: Text("Hora de inicio:"),
-                      subtitle: Text(horaInicio.format(context)),
-                      trailing: IconButton(
-                        icon: Icon(Icons.access_time),
-                        onPressed: () => seleccionarHora(context, true),
-                      ),
+                      title: Text("Hora de inicio: ${horaInicio.format(context)}"),
+                      trailing: Icon(Icons.access_time),
+                      onTap: () => seleccionarHora(context, true),
                     ),
                     ListTile(
-                      title: Text("Hora de fin:"),
-                      subtitle: Text(horaFin.format(context)),
-                      trailing: IconButton(
-                        icon: Icon(Icons.access_time),
-                        onPressed: () => seleccionarHora(context, false),
-                      ),
+                      title: Text("Hora de fin: ${horaFin.format(context)}"),
+                      trailing: Icon(Icons.access_time),
+                      onTap: () => seleccionarHora(context, false),
                     ),
+                    SizedBox(height: 16),
+
+                    // Mostrar opción de grupo solo si el usuario es administrador en algún grupo
+                    if (mostrarOpcionGrupo)
+                      Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: tipoHorario,
+                            items: [
+                              DropdownMenuItem(value: "personal", child: Text("Horario Personal")),
+                              DropdownMenuItem(value: "grupo", child: Text("Horario de Grupo"))
+                            ],
+                            onChanged: (value) => setStateDialog(() => tipoHorario = value!),
+                            decoration: InputDecoration(labelText: "Tipo de horario", border: OutlineInputBorder()),
+                          ),
+                          if (tipoHorario == "grupo")
+                            DropdownButtonFormField<String>(
+                              value: grupoSeleccionado,
+                              items: gruposAdmin.map((g) => DropdownMenuItem(value: g["nombre"].toString(), child: Text(g["nombre"].toString()))).toList(),
+
+                              onChanged: (value) => setStateDialog(() => grupoSeleccionado = value!),
+                              decoration: InputDecoration(labelText: "Selecciona el grupo", border: OutlineInputBorder()),
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("Cancelar"),
-              ),
+              TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancelar")),
               ElevatedButton(
                 onPressed: () {
                   if (formKey.currentState!.validate()) {
-                    // Validar que hora fin > hora inicio
                     final inicioMinutos = horaInicio.hour * 60 + horaInicio.minute;
                     final finMinutos = horaFin.hour * 60 + horaFin.minute;
-                    
+
                     if (finMinutos <= inicioMinutos) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('La hora de fin debe ser posterior a la hora de inicio'))
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('La hora de fin debe ser posterior a la de inicio')));
                       return;
                     }
-                    
-                    // Formatear correctamente las horas
-                    final horaInicioStr = '${horaInicio.hour.toString().padLeft(2, '0')}:${horaInicio.minute.toString().padLeft(2, '0')}';
-                    final horaFinStr = '${horaFin.hour.toString().padLeft(2, '0')}:${horaFin.minute.toString().padLeft(2, '0')}';
-                    
-                    // Cerrar diálogo antes de actualizar estado
-                    Navigator.pop(context);
-                    
-                    // Actualizar estado y mostrar notificación
+
                     setState(() {
-                      final nuevoHorario = {
+                      horarios.add({
                         "id": horarios.length + 1,
                         "asignatura": asignatura,
-                        "hora_inicio": horaInicioStr,
-                        "hora_fin": horaFinStr,
-                        "dia_semana": diaSeleccionado
-                      };
-                      
-                      this.setState(() {
-                        horarios.add(nuevoHorario);
-                        _actualizarGrafico();
-                        _mostrarNotificacion = true;
-                        _mensajeNotificacion = 'Horario de ${asignatura} añadido correctamente';
-                        
-                        // Ocultar notificación después de 3 segundos
-                        Future.delayed(Duration(seconds: 3), () {
-                          if (mounted) {
-                            this.setState(() {
-                              _mostrarNotificacion = false;
-                            });
-                          }
-                        });
+                        "hora_inicio": "${horaInicio.hour.toString().padLeft(2, '0')}:${horaInicio.minute.toString().padLeft(2, '0')}",
+                        "hora_fin": "${horaFin.hour.toString().padLeft(2, '0')}:${horaFin.minute.toString().padLeft(2, '0')}",
+                        "dia_semana": diaSeleccionado,
+                        "tipo": tipoHorario,
+                        if (tipoHorario == "grupo") "grupo": grupoSeleccionado
                       });
+                      _mostrarNotificacion = true;
+                      _mensajeNotificacion = 'Horario añadido correctamente';
                     });
+
+                    Navigator.pop(context);
+                    Future.delayed(Duration(seconds: 3), () => setState(() => _mostrarNotificacion = false));
                   }
                 },
                 child: Text("Agregar"),
               ),
             ],
           );
-        }
+        },
       ),
     );
-  }
-
-  void _eliminarHorario(int index) {
-    final horarioEliminado = horarios[index];
-    
-    setState(() {
-      horarios.removeAt(index);
-      _actualizarGrafico();
-      _mostrarNotificacion = true;
-      _mensajeNotificacion = 'Horario de ${horarioEliminado['asignatura']} eliminado';
-      
-      // Ocultar notificación después de 3 segundos
-      Future.delayed(Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            _mostrarNotificacion = false;
-          });
-        }
-      });
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Stack(
+    return Scaffold(
+      appBar: AppBar(title: Text("Horarios")),
+      body: ListView(
+        padding: EdgeInsets.all(16),
         children: [
-          Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton.icon(
-                    icon: Icon(Icons.add),
-                    label: Text("Añadir Horario"),
-                    onPressed: _mostrarDialogoAgregarHorario,
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                  Text(
-                    "Hoy: $_diaActual",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              
-              // Gráfico circular con distribución de tiempo
-              if (_datosGrafico.isNotEmpty) ...[
-                Text(
-                  "Distribución de Tiempo para Hoy",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Container(
-                  height: 200,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      PieChart(data: _datosGrafico, radius: 80),
-                      SizedBox(width: 20),
-                      Flexible(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (var item in _datosGrafico)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 16,
-                                      height: 16,
-                                      color: item['color'] as Color,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        '${item['name']}: ${((item['value'] as double) / _datosGrafico.fold(0.0, (sum, item) => sum + (item['value'] as double)) * 100).toStringAsFixed(1)}%',
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              
-              SizedBox(height: 20),
-              
-              Expanded(
-                child: ListView.builder(
-                  itemCount: horarios.length,
-                  itemBuilder: (context, index) {
-                    var horario = horarios[index];
-                    return Card(
-                      margin: EdgeInsets.symmetric(vertical: 8),
-                      elevation: 2,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: _colores[index % _colores.length],
-                          child: Icon(Icons.schedule, color: Colors.white),
-                        ),
-                        title: Text(
-                          '${horario['asignatura']}',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          '${horario['dia_semana']} - ${horario['hora_inicio']} a ${horario['hora_fin']}',
-                        ),
-                        trailing: IconButton(
-                          icon: Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _eliminarHorario(index),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+          ElevatedButton.icon(
+            icon: Icon(Icons.add),
+            label: Text("Añadir Horario"),
+            onPressed: _mostrarDialogoAgregarHorario,
           ),
-          
-          // Notificación flotante
-          if (_mostrarNotificacion)
-            Positioned(
-              bottom: 20,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 10,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green),
-                      SizedBox(width: 10),
-                      Text(
-                        _mensajeNotificacion,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          SizedBox(height: 20),
+          for (var horario in horarios)
+            ListTile(
+              title: Text("${horario['asignatura']} (${horario['dia_semana']})"),
+              subtitle: Text("${horario['hora_inicio']} - ${horario['hora_fin']}"),
+              trailing: horario["tipo"] == "grupo"
+                  ? Chip(label: Text("Grupo: ${horario['grupo']}", style: TextStyle(color: Colors.white)), backgroundColor: Colors.blue)
+                  : Chip(label: Text("Personal"), backgroundColor: Colors.green),
             ),
         ],
       ),
@@ -737,7 +606,7 @@ class _HorariosPageState extends State<HorariosPage> with AutomaticKeepAliveClie
   }
 }
 
-// Módulo de Eventos mejorado
+// Módulo de Eventos mejorado con funcionalidad de grupo/personal
 class EventosPage extends StatefulWidget {
   @override
   _EventosPageState createState() => _EventosPageState();
@@ -747,6 +616,14 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
   List<Map<String, dynamic>> eventos = [];
   bool _mostrarNotificacion = false;
   String _mensajeNotificacion = '';
+  
+  // Lista de grupos donde el usuario es miembro o administrador
+  List<Map<String, dynamic>> _grupos = [
+    {"nombre": "Matemáticas Avanzadas", "esAdmin": true},
+    {"nombre": "Física Cuántica", "esAdmin": false},
+    {"nombre": "Historia Universal", "esAdmin": true},
+    {"nombre": "Desarrollo de Software", "esAdmin": false},
+  ];
   
   @override
   bool get wantKeepAlive => true;
@@ -760,13 +637,16 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
         "titulo": "Examen de Cálculo",
         "fecha": "2025-03-15",
         "hora": "10:00",
-        "descripcion": "Traer calculadora y formulario"
+        "descripcion": "Traer calculadora y formulario",
+        "tipo": "personal"
       },
       {
         "titulo": "Entrega de Proyecto",
         "fecha": "2025-03-20",
         "hora": "23:59",
-        "descripcion": "Enviar por correo electrónico"
+        "descripcion": "Enviar por correo electrónico",
+        "tipo": "grupo",
+        "grupo": "Desarrollo de Software"
       }
     ];
   }
@@ -777,6 +657,11 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
     String descripcion = "";
     DateTime fechaSeleccionada = DateTime.now();
     TimeOfDay horaSeleccionada = TimeOfDay.now();
+    String tipoEvento = "personal";
+    String grupoSeleccionado = _grupos.firstWhere((g) => g["esAdmin"], orElse: () => {"nombre": ""})["nombre"];
+    
+    List<Map<String, dynamic>> gruposAdmin = _grupos.where((g) => g["esAdmin"]).toList();
+    bool mostrarOpcionGrupo = gruposAdmin.isNotEmpty;
     
     // Formateador de fecha para mostrar
     String formatearFecha(DateTime fecha) {
@@ -816,7 +701,7 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (context, setStateDialog) {
           return AlertDialog(
             title: Text("Agregar Evento"),
             content: Form(
@@ -864,6 +749,31 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
                         onPressed: () => seleccionarHora(context),
                       ),
                     ),
+                    
+                    SizedBox(height: 16),
+                    // Mostrar opción de grupo solo si el usuario es administrador en algún grupo
+                    if (mostrarOpcionGrupo)
+                      Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: tipoEvento,
+                            items: [
+                              DropdownMenuItem(value: "personal", child: Text("Evento Personal")),
+                              DropdownMenuItem(value: "grupo", child: Text("Evento de Grupo"))
+                            ],
+                            onChanged: (value) => setStateDialog(() => tipoEvento = value!),
+                            decoration: InputDecoration(labelText: "Tipo de evento", border: OutlineInputBorder()),
+                          ),
+                          SizedBox(height: 16),
+                          if (tipoEvento == "grupo")
+                            DropdownButtonFormField<String>(
+                              value: grupoSeleccionado,
+                              items: gruposAdmin.map((g) => DropdownMenuItem(value: g["nombre"].toString(), child: Text(g["nombre"].toString()))).toList(),
+                              onChanged: (value) => setStateDialog(() => grupoSeleccionado = value!),
+                              decoration: InputDecoration(labelText: "Selecciona el grupo", border: OutlineInputBorder()),
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -888,25 +798,25 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
                       "fecha": formatearFecha(fechaSeleccionada),
                       "hora": horaStr,
                       "descripcion": descripcion,
+                      "tipo": tipoEvento,
+                      if (tipoEvento == "grupo") "grupo": grupoSeleccionado
                     };
                     
                     setState(() {
-                      this.setState(() {
-                        eventos.add(nuevoEvento);
-                        _mostrarNotificacion = true;
-                        _mensajeNotificacion = 'Evento "${titulo}" añadido correctamente';
-                        
-                        // Ordenar eventos por fecha
-                        eventos.sort((a, b) => a['fecha'].toString().compareTo(b['fecha'].toString()));
-                        
-                        // Ocultar notificación después de 3 segundos
-                        Future.delayed(Duration(seconds: 3), () {
-                          if (mounted) {
-                            this.setState(() {
-                              _mostrarNotificacion = false;
-                            });
-                          }
-                        });
+                      eventos.add(nuevoEvento);
+                      _mostrarNotificacion = true;
+                      _mensajeNotificacion = 'Evento "${titulo}" añadido correctamente';
+                      
+                      // Ordenar eventos por fecha
+                      eventos.sort((a, b) => a['fecha'].toString().compareTo(b['fecha'].toString()));
+                      
+                      // Ocultar notificación después de 3 segundos
+                      Future.delayed(Duration(seconds: 3), () {
+                        if (mounted) {
+                          setState(() {
+                            _mostrarNotificacion = false;
+                          });
+                        }
                       });
                     });
                   }
@@ -945,6 +855,11 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
     String titulo = evento['titulo'];
     String descripcion = evento['descripcion'] ?? '';
     DateTime fechaSeleccionada = DateTime.parse(evento['fecha']);
+    String tipoEvento = evento['tipo'] ?? 'personal';
+    String grupoSeleccionado = evento['grupo'] ?? _grupos.firstWhere((g) => g["esAdmin"], orElse: () => {"nombre": ""})["nombre"];
+    
+    List<Map<String, dynamic>> gruposAdmin = _grupos.where((g) => g["esAdmin"]).toList();
+    bool mostrarOpcionGrupo = gruposAdmin.isNotEmpty;
     
     // Parsear hora
     final horaPartes = (evento['hora'] as String).split(':');
@@ -991,7 +906,7 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (context, setStateDialog) {
           return AlertDialog(
             title: Text("Editar Evento"),
             content: Form(
@@ -1041,6 +956,31 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
                         onPressed: () => seleccionarHora(context),
                       ),
                     ),
+                    
+                    SizedBox(height: 16),
+                    // Mostrar opción de grupo solo si el usuario es administrador en algún grupo
+                    if (mostrarOpcionGrupo)
+                      Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: tipoEvento,
+                            items: [
+                              DropdownMenuItem(value: "personal", child: Text("Evento Personal")),
+                              DropdownMenuItem(value: "grupo", child: Text("Evento de Grupo"))
+                            ],
+                            onChanged: (value) => setStateDialog(() => tipoEvento = value!),
+                            decoration: InputDecoration(labelText: "Tipo de evento", border: OutlineInputBorder()),
+                          ),
+                          SizedBox(height: 16),
+                          if (tipoEvento == "grupo")
+                            DropdownButtonFormField<String>(
+                              value: grupoSeleccionado,
+                              items: gruposAdmin.map((g) => DropdownMenuItem(value: g["nombre"].toString(), child: Text(g["nombre"].toString()))).toList(),
+                              onChanged: (value) => setStateDialog(() => grupoSeleccionado = value!),
+                              decoration: InputDecoration(labelText: "Selecciona el grupo", border: OutlineInputBorder()),
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -1059,13 +999,14 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
                     // Cerrar el diálogo primero
                     Navigator.pop(context);
                     
-// Continuación del método _mostrarDialogoEditarEvento en la clase _EventosPageState
-                    this.setState(() {
+                    setState(() {
                       eventos[index] = {
                         "titulo": titulo,
                         "fecha": formatearFecha(fechaSeleccionada),
                         "hora": horaStr,
                         "descripcion": descripcion,
+                        "tipo": tipoEvento,
+                        if (tipoEvento == "grupo") "grupo": grupoSeleccionado
                       };
                       _mostrarNotificacion = true;
                       _mensajeNotificacion = 'Evento "${titulo}" actualizado correctamente';
@@ -1076,7 +1017,7 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
                       // Ocultar notificación después de 3 segundos
                       Future.delayed(Duration(seconds: 3), () {
                         if (mounted) {
-                          this.setState(() {
+                          setState(() {
                             _mostrarNotificacion = false;
                           });
                         }
@@ -1146,6 +1087,8 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
                   itemCount: eventos.length,
                   itemBuilder: (context, index) {
                     var evento = eventos[index];
+                    final esGrupo = evento["tipo"] == "grupo";
+                    
                     // Calcular días restantes
                     final fechaEvento = DateTime.parse(evento['fecha']);
                     final hoy = DateTime.now();
@@ -1159,71 +1102,135 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
                       colorIndicador = Colors.red; // Próximo (3 días o menos)
                     } else if (diferencia <= 7) {
                       colorIndicador = Colors.orange; // Cercano (7 días o menos)
-                    } else {
-                      colorIndicador = Colors.green; // Lejano
+} else {
+                      colorIndicador = Colors.green; // Futuro (más de 7 días)
                     }
                     
-                    String etiquetaTiempo;
+                    String textoIndicador;
                     if (diferencia < 0) {
-                      etiquetaTiempo = "Pasado";
+                      textoIndicador = "Evento pasado";
                     } else if (diferencia == 0) {
-                      etiquetaTiempo = "Hoy";
+                      textoIndicador = "¡Hoy!";
                     } else if (diferencia == 1) {
-                      etiquetaTiempo = "Mañana";
+                      textoIndicador = "¡Mañana!";
                     } else {
-                      etiquetaTiempo = "En $diferencia días";
+                      textoIndicador = "En $diferencia días";
                     }
                     
                     return Card(
-                      margin: EdgeInsets.symmetric(vertical: 8),
-                      elevation: 2,
-                      child: ListTile(
-                        leading: Container(
-                          width: 4,
-                          height: double.infinity,
+                      margin: EdgeInsets.only(bottom: 16),
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
                           color: colorIndicador,
+                          width: 1.5,
                         ),
-                        title: Text(
-                          evento['titulo'],
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "${evento['fecha']} a las ${evento['hora']}",
-                              style: TextStyle(color: Colors.blue.shade800),
-                            ),
-                            if (evento['descripcion'] != null && evento['descripcion'].isNotEmpty)
-                              Text(evento['descripcion']),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Chip(
-                              label: Text(
-                                etiquetaTiempo,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                ),
+                      ),
+                      child: InkWell(
+                        onTap: () => _mostrarDialogoEditarEvento(index),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: colorIndicador.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      esGrupo ? Icons.group : Icons.person,
+                                      color: colorIndicador,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          evento['titulo'],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          "${evento['fecha']} a las ${evento['hora']}",
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: colorIndicador.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      textoIndicador,
+                                      style: TextStyle(
+                                        color: colorIndicador,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              backgroundColor: colorIndicador,
-                              padding: EdgeInsets.all(4),
-                            ),
-                            SizedBox(width: 8),
-                            IconButton(
-                              icon: Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _mostrarDialogoEditarEvento(index),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _eliminarEvento(index),
-                            ),
-                          ],
+                              if (evento['descripcion'] != null && evento['descripcion'].isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12.0, left: 8.0),
+                                  child: Text(
+                                    evento['descripcion'],
+                                    style: TextStyle(
+                                      color: Colors.grey[800],
+                                    ),
+                                  ),
+                                ),
+                              if (esGrupo)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0, left: 8.0),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.group, size: 16, color: Colors.grey[600]),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        "Grupo: ${evento['grupo']}",
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit, color: Colors.blue),
+                                    onPressed: () => _mostrarDialogoEditarEvento(index),
+                                    tooltip: "Editar evento",
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () => _eliminarEvento(index),
+                                    tooltip: "Eliminar evento",
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        isThreeLine: true,
                       ),
                     );
                   },
@@ -1232,36 +1239,39 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
             ],
           ),
           
-          // Notificación flotante
+          // Notificación
           if (_mostrarNotificacion)
             Positioned(
               bottom: 20,
-              left: 0,
-              right: 0,
-              child: Center(
+              left: 20,
+              right: 20,
+              child: AnimatedOpacity(
+                opacity: _mostrarNotificacion ? 1.0 : 0.0,
+                duration: Duration(milliseconds: 300),
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.green[700],
+                    borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black26,
-                        blurRadius: 10,
+                        blurRadius: 8,
                         offset: Offset(0, 3),
                       ),
                     ],
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green),
-                      SizedBox(width: 10),
-                      Text(
-                        _mensajeNotificacion,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                      Icon(Icons.check_circle, color: Colors.white),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _mensajeNotificacion,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -1274,7 +1284,6 @@ class _EventosPageState extends State<EventosPage> with AutomaticKeepAliveClient
     );
   }
 }
-
 // Módulo de Cronómetro
 class CronometroPage extends StatefulWidget {
   @override
@@ -1526,7 +1535,7 @@ class _CronometroPageState extends State<CronometroPage> with TickerProviderStat
   }
 }
 
-// Módulo de Avisos
+// Módulo de Avisos mejorado
 class AvisosPage extends StatefulWidget {
   @override
   _AvisosPageState createState() => _AvisosPageState();
@@ -1537,6 +1546,14 @@ class _AvisosPageState extends State<AvisosPage> with AutomaticKeepAliveClientMi
   bool _mostrarNotificacion = false;
   String _mensajeNotificacion = '';
   
+  // Lista de grupos donde el usuario es miembro o administrador
+  List<Map<String, dynamic>> _grupos = [
+    {"nombre": "Matemáticas Avanzadas", "esAdmin": true},
+    {"nombre": "Física Cuántica", "esAdmin": false},
+    {"nombre": "Historia Universal", "esAdmin": true},
+    {"nombre": "Desarrollo de Software", "esAdmin": false},
+  ];
+  
   @override
   bool get wantKeepAlive => true;
   
@@ -1546,69 +1563,37 @@ class _AvisosPageState extends State<AvisosPage> with AutomaticKeepAliveClientMi
     // Avisos de ejemplo
     avisos = [
       {
-        "titulo": "Cambio de horario",
-        "contenido": "Las clases de matemáticas del jueves se impartirán en el aula 302",
-        "fecha": "2025-03-10",
-        "leido": false,
-        "importante": true
+        "titulo": "Cambio de horario - Matemáticas",
+        "contenido": "La clase de Matemáticas del viernes se cambia a las 10:00",
+        "fecha": "2025-03-12",
+        "tipo": "personal"
       },
       {
-        "titulo": "Suspensión de clases",
-        "contenido": "El viernes no habrá clases por junta académica",
+        "titulo": "Recordatorio entrega de proyecto",
+        "contenido": "No olviden entregar la primera parte del proyecto este domingo",
         "fecha": "2025-03-11",
-        "leido": true,
-        "importante": false
+        "tipo": "grupo",
+        "grupo": "Desarrollo de Software"
       }
     ];
-    
-    // Ordenar avisos por fecha (más recientes primero) e importancia
-    _ordenarAvisos();
-  }
-  
-  void _ordenarAvisos() {
-    avisos.sort((a, b) {
-      // Primero por importancia
-      if (a['importante'] != b['importante']) {
-        return a['importante'] ? -1 : 1;
-      }
-      // Luego por fecha (más reciente primero)
-      return b['fecha'].toString().compareTo(a['fecha'].toString());
-    });
   }
 
   void _mostrarDialogoAgregarAviso() {
     final formKey = GlobalKey<FormState>();
     String titulo = "";
     String contenido = "";
-    bool importante = false;
-    DateTime fechaSeleccionada = DateTime.now();
-    
-    // Formateador de fecha para mostrar
-    String formatearFecha(DateTime fecha) {
-      return "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}";
-    }
+    String tipoAviso = "personal";
+    String grupoSeleccionado = _grupos.firstWhere((g) => g["esAdmin"], orElse: () => {"nombre": ""})["nombre"];
 
-    Future<void> seleccionarFecha(BuildContext context) async {
-      final DateTime? seleccionada = await showDatePicker(
-        context: context,
-        initialDate: fechaSeleccionada,
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2030),
-      );
-
-      if (seleccionada != null) {
-        fechaSeleccionada = seleccionada;
-        // No es necesario reconstruir el diálogo como en otros casos
-        // porque solo estamos actualizando el valor y no reconstruyendo widgets
-      }
-    }
+    List<Map<String, dynamic>> gruposAdmin = _grupos.where((g) => g["esAdmin"]).toList();
+    bool mostrarOpcionGrupo = gruposAdmin.isNotEmpty;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateDialog) {
           return AlertDialog(
-            title: Text("Agregar Aviso"),
+            title: Text("Crear Nuevo Aviso"),
             content: Form(
               key: formKey,
               child: SingleChildScrollView(
@@ -1632,38 +1617,42 @@ class _AvisosPageState extends State<AvisosPage> with AutomaticKeepAliveClientMi
                     TextFormField(
                       onChanged: (value) => contenido = value,
                       decoration: InputDecoration(
-                        labelText: "Contenido del Aviso",
+                        labelText: "Contenido",
                         border: OutlineInputBorder(),
                       ),
-                      maxLines: 5,
+                      maxLines: 4,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Por favor, ingrese el contenido';
+                          return 'Por favor, ingrese el contenido del aviso';
                         }
                         return null;
                       },
                     ),
                     SizedBox(height: 16),
-                    ListTile(
-                      title: Text("Fecha:"),
-                      subtitle: Text(formatearFecha(fechaSeleccionada)),
-                      trailing: IconButton(
-                        icon: Icon(Icons.calendar_today),
-                        onPressed: () async {
-                          await seleccionarFecha(context);
-                          setStateDialog(() {}); // Actualizar el diálogo
-                        },
+                    
+                    // Mostrar opción de grupo solo si el usuario es administrador en algún grupo
+                    if (mostrarOpcionGrupo)
+                      Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: tipoAviso,
+                            items: [
+                              DropdownMenuItem(value: "personal", child: Text("Aviso Personal")),
+                              DropdownMenuItem(value: "grupo", child: Text("Aviso de Grupo"))
+                            ],
+                            onChanged: (value) => setStateDialog(() => tipoAviso = value!),
+                            decoration: InputDecoration(labelText: "Tipo de aviso", border: OutlineInputBorder()),
+                          ),
+                          SizedBox(height: 16),
+                          if (tipoAviso == "grupo")
+                            DropdownButtonFormField<String>(
+                              value: grupoSeleccionado,
+                              items: gruposAdmin.map((g) => DropdownMenuItem(value: g["nombre"].toString(), child: Text(g["nombre"].toString()))).toList(),
+                              onChanged: (value) => setStateDialog(() => grupoSeleccionado = value!),
+                              decoration: InputDecoration(labelText: "Selecciona el grupo", border: OutlineInputBorder()),
+                            ),
+                        ],
                       ),
-                    ),
-                    SwitchListTile(
-                      title: Text("Marcar como importante"),
-                      value: importante,
-                      onChanged: (value) {
-                        setStateDialog(() {
-                          importante = value;
-                        });
-                      },
-                    ),
                   ],
                 ),
               ),
@@ -1676,57 +1665,53 @@ class _AvisosPageState extends State<AvisosPage> with AutomaticKeepAliveClientMi
               ElevatedButton(
                 onPressed: () {
                   if (formKey.currentState!.validate()) {
-                    // Cerrar el diálogo primero
-                    Navigator.pop(context);
+                    final fechaActual = DateTime.now();
+                    final fechaStr = "${fechaActual.year}-${fechaActual.month.toString().padLeft(2, '0')}-${fechaActual.day.toString().padLeft(2, '0')}";
                     
-                    // Añadir aviso y mostrar notificación
                     setState(() {
                       avisos.add({
                         "titulo": titulo,
                         "contenido": contenido,
-                        "fecha": formatearFecha(fechaSeleccionada),
-                        "leido": false,
-                        "importante": importante
+                        "fecha": fechaStr,
+                        "tipo": tipoAviso,
+                        if (tipoAviso == "grupo") "grupo": grupoSeleccionado
                       });
-                      
-                      _ordenarAvisos();
                       
                       _mostrarNotificacion = true;
-                      _mensajeNotificacion = 'Aviso añadido correctamente';
+                      _mensajeNotificacion = 'Aviso creado correctamente';
                       
-                      // Ocultar notificación después de 3 segundos
-                      Future.delayed(Duration(seconds: 3), () {
-                        if (mounted) {
-                          setState(() {
-                            _mostrarNotificacion = false;
-                          });
-                        }
-                      });
+                      // Ordenar avisos por fecha (más recientes primero)
+                      avisos.sort((a, b) => b['fecha'].toString().compareTo(a['fecha'].toString()));
+                    });
+                    
+                    Navigator.pop(context);
+                    
+                    // Ocultar notificación después de 3 segundos
+                    Future.delayed(Duration(seconds: 3), () {
+                      if (mounted) {
+                        setState(() {
+                          _mostrarNotificacion = false;
+                        });
+                      }
                     });
                   }
                 },
-                child: Text("Agregar"),
+                child: Text("Publicar Aviso"),
               ),
             ],
           );
-        }
+        },
       ),
     );
   }
-
-  void _marcarComoLeido(int index) {
-    setState(() {
-      avisos[index]['leido'] = true;
-    });
-  }
-
+  
   void _eliminarAviso(int index) {
     final avisoEliminado = avisos[index];
     
     setState(() {
       avisos.removeAt(index);
       _mostrarNotificacion = true;
-      _mensajeNotificacion = 'Aviso eliminado';
+      _mensajeNotificacion = 'Aviso "${avisoEliminado['titulo']}" eliminado';
       
       // Ocultar notificación después de 3 segundos
       Future.delayed(Duration(seconds: 3), () {
@@ -1742,144 +1727,109 @@ class _AvisosPageState extends State<AvisosPage> with AutomaticKeepAliveClientMi
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    
-    // Calcular el número de avisos no leídos
-    final avisosNoLeidos = avisos.where((a) => a['leido'] == false).length;
-    
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Stack(
+    return Scaffold(
+      appBar: AppBar(title: Text("Avisos")),
+      body: Stack(
         children: [
-          Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton.icon(
-                    icon: Icon(Icons.add),
-                    label: Text("Añadir Aviso"),
-                    onPressed: _mostrarDialogoAgregarAviso,
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                  avisosNoLeidos > 0
-                  ? Chip(
-                      label: Text(
-                        "$avisosNoLeidos sin leer",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      backgroundColor: Colors.red,
-                    )
-                  : Text(
-                      "Todos leídos",
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                ],
-              ),
-              SizedBox(height: 20),
-              
-              Expanded(
-                child: avisos.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.notification_important, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          "No hay avisos disponibles",
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                  itemCount: avisos.length,
-                  itemBuilder: (context, index) {
-                    var aviso = avisos[index];
-                    
-                    return Card(
-                      margin: EdgeInsets.symmetric(vertical: 8),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: aviso['importante']
-                          ? BorderSide(color: Colors.red, width: 2)
-                          : BorderSide.none,
-                      ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ElevatedButton.icon(
+                  icon: Icon(Icons.add),
+                  label: Text("Publicar Aviso"),
+                  onPressed: _mostrarDialogoAgregarAviso,
+                ),
+                SizedBox(height: 20),
+                
+                Expanded(
+                  child: avisos.isEmpty
+                  ? Center(
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ListTile(
-                            leading: aviso['importante']
-                              ? Icon(Icons.priority_high, color: Colors.red)
-                              : Icon(Icons.announcement, color: Colors.blue),
-                            title: Text(
-                              aviso['titulo'],
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                decoration: aviso['leido'] ? TextDecoration.lineThrough : null,
-                              ),
-                            ),
-                            subtitle: Text("Fecha: ${aviso['fecha']}"),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (!aviso['leido'])
-                                  IconButton(
-                                    icon: Icon(Icons.visibility, color: Colors.green),
-                                    onPressed: () => _marcarComoLeido(index),
-                                    tooltip: "Marcar como leído",
-                                  ),
-                                IconButton(
-                                  icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _eliminarAviso(index),
-                                  tooltip: "Eliminar aviso",
-                                ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                            child: Text(
-                              aviso['contenido'],
-                              style: TextStyle(
-                                color: aviso['leido'] ? Colors.grey : Colors.black87,
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: aviso['leido'] ? Colors.grey.shade200 : Colors.blue.shade50,
-                              borderRadius: BorderRadius.only(
-                                bottomLeft: Radius.circular(8),
-                                bottomRight: Radius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              aviso['leido'] ? "Leído" : "No leído",
-                              style: TextStyle(
-                                fontStyle: FontStyle.italic,
-                                color: aviso['leido'] ? Colors.grey : Colors.blue,
-                              ),
+                          Icon(Icons.notifications_off, size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text(
+                            "No hay avisos disponibles",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  },
+                    )
+                  : ListView.builder(
+                    itemCount: avisos.length,
+                    itemBuilder: (context, index) {
+                      final aviso = avisos[index];
+                      final esGrupo = aviso["tipo"] == "grupo";
+                      
+                      return Card(
+                        margin: EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          title: Text(
+                            aviso['titulo'],
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: 8),
+                              Text(aviso['contenido']),
+                              SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Text(
+                                    "Publicado: ${aviso['fecha']}",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Spacer(),
+                                  if (esGrupo)
+                                    Chip(
+                                      label: Text(
+                                        "Grupo: ${aviso['grupo']}",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      backgroundColor: Colors.blue,
+                                      padding: EdgeInsets.all(4),
+                                    )
+                                  else
+                                    Chip(
+                                      label: Text(
+                                        "Personal",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      padding: EdgeInsets.all(4),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          trailing: IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _eliminarAviso(index),
+                          ),
+                          isThreeLine: true,
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           
           // Notificación flotante
