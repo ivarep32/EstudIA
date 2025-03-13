@@ -58,6 +58,59 @@ def get_groups():
         "parent_group": g.supergroup_id
     } for g in groups]), 200
 
+
+@user_bp.route('/admin_of', methods=['GET'])
+@swag_from({
+    'tags': ['User'],
+    'summary':'Devuelve los grupos de los que un usurario es admin',
+    'parameters':[
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        }
+    ],
+    'responses':{
+        200:{
+            'description': 'lista de grupos',
+            'schema': {
+                'type': 'array',
+                'items':{
+                    'type': 'object',
+                    'properties':{
+                        'id': {'type': 'integer', 'example': 1},
+                        'name': {'type': 'string', 'example': 'grupo de mates'},
+                        'parent_group': {'type': 'integer', 'example': 2}
+                    }
+                }
+
+            }
+        },
+        401: {'description': 'No autorizado'}
+    }
+})
+@jwt_required()
+def get_admin_of_groups():
+    user_id = get_jwt_identity()
+    
+    groups = (
+        db.session.query(Group)  # Ensure we're selecting Group objects
+        .join(GroupAdmin, GroupAdmin.group_id == Group.group_id)  # Join Participation with Group
+        .filter(GroupAdmin.user_id == user_id)  # Filter by user_id
+        .all()
+    )
+
+    return jsonify([{
+        "id": g.group_id,
+        "name": g.name,
+        "parent_group": g.supergroup_id
+    } for g in groups]), 200
+
 @user_bp.route('/subjects', methods=['GET'])
 @jwt_required()
 @swag_from({
@@ -496,7 +549,7 @@ def add_event():
             }
         }
     ],
-    'responses': { # falta
+    'responses': {
         200: {
             'description': 'Lista de eventos',
             'schema': {
