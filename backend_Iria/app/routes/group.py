@@ -635,7 +635,7 @@ def add_user_to_group(group_id):
                                 'name': {'type': 'string', 'example': 'Matemáticas Avanzadas'},
                                 'description':{'type':'string', 'example':'No puedo seguir escribiendo codigo ni un solo segundo mas por favor make it end' },
                                 'difficulty': {'type': 'integer', 'example': 3},
-                                'curriculum': {'type': 'string', 'example': 'Esto no es vida, es el castigo que nos ha puesto, llamalo dios, llamalo energia, por que Eva se comio la manzana'},
+                                'curriculum': {'type': 'string', 'example': 'Esto no es vida, es el castigo que nos ha puesto, llamalo dios, llamalo energia, porque Eva se comio la manzana'},
                                 'professor': {'type': 'string', 'example': 'SATANÁS LLEVAME CONTIGO'}
                             }
                         }
