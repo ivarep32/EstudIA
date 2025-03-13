@@ -398,7 +398,7 @@ def add_event(group_id):
                     'end_time': {'type':'string', 'format': 'date-time', 'example':'2025-03-12T14:30:00'},
                     'type': {'type':'string', 'example': 'examen parcial'},
                     'name': {'type': 'string', 'example': 'Examen de geografía'},
-                    'description': {'type': 'string', 'example': 'Estudiar los rios de europa'},
+                    'description': {'type': 'string', 'example': 'Víctor, hermano, siempre estás tragando, te ven en McDonalds y ya están preguntando. El combo agrandado, las papas con queso, pero corre más lento que un caracol obeso.'},
                 }
             }
         }
