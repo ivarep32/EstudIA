@@ -126,7 +126,7 @@ class GroupEvent(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey("group.group_id"), nullable=False)
     event_id = db.Column(db.Integer, db.ForeignKey("event.event_id"), nullable=False)
     __table_args__ = (
-        db.PrimaryKeyConstraint("group_id", "event_id"),
+        db.PrimaryKeyConstraint("event_id"),
     )
 
 # --- User Event Relationship ---

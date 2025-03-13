@@ -87,11 +87,11 @@ def add_subject(group_id):
     return jsonify({"message": "Asignatura añadida"}), 201
 
 
-@group_bp.route('/schedule/<int:group_id>', methods=['POST'])
+@group_bp.route('/schedule/<int:group_id>', methods=['PUT'])
 @swag_from({
     'tags': ['Group'],
-    'summary': 'Crear un nuevo horario de grupo',
-    'description': 'Permite al usuario crear un nuevo horario de grupo',
+    'summary': 'Crear un nuevo horario de grupo o sobreescribe el existente',
+    'description': 'Permite al usuario crear o sobreescribir un horario de grupo',
     'parameters': [
         {
             'name': 'Authorization',
@@ -150,16 +150,22 @@ def add_group_schedule(group_id):
     if not data:
         return jsonify({"message": "Invalid JSON format"}), 400
 
-    new_schedule = Schedule(
-        group_id=group_id
-    )
+    schedule = Schedule.query.filter_by(group_id=group_id).first()
+    if schedule:
+        db.session.query(TimeSlot).filter(TimeSlot.schedule_id == schedule.schedule_id)\
+            .delete(synchronize_session='fetch')
+        db.session.commit()
+    else:
+        schedule = Schedule(
+            group_id=group_id
+        )
     
-    db.session.add(new_schedule)
-    db.session.flush()
+        db.session.add(schedule)
+        db.session.flush()
     
     for a in data["timeslots"]:
         timeslot = TimeSlot(            
-            schedule_id = new_schedule.schedule_id,
+            schedule_id = schedule.schedule_id,
             day_of_week = a["day_of_week"],
             start_time = time.fromisoformat(a["start_time"]),
             end_time = time.fromisoformat(a["end_time"]),
@@ -359,6 +365,85 @@ def add_event(group_id):
     db.session.commit()
 
     return jsonify({"message": "Evento añadido"}), 201
+
+
+@group_bp.route('/event/<int:event_id>', methods=['PATCH'])
+@swag_from({
+    'tags': ['Group'],
+    'summary': 'Modifica un evento exitente',
+    'description': 'Permite al usuario modificar un evento existente',
+    'parameters': [
+        {
+            'name': 'Authorization',
+            'in': 'header',
+            'required': True,
+            'description': 'Bearer token for authentication',
+            'schema': {
+                'type': 'string',
+                'example': 'Bearer <your_jwt_token>'
+            }
+        },
+        {'name': 'event_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'ID of the event'},
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema':{
+                'type': 'object',
+                'properties': {
+                    'start_time': {'type':'string', 'format': 'date-time', 'example':'2025-03-12T13:30:00'},
+                    'end_time': {'type':'string', 'format': 'date-time', 'example':'2025-03-12T14:30:00'},
+                    'type': {'type':'string', 'example': 'examen parcial'},
+                    'name': {'type': 'string', 'example': 'Examen de geografía'},
+                    'description': {'type': 'string', 'example': 'Estudiar los rios de europa'},
+                }
+            }
+        }
+    ],
+    'responses':{
+        201:{'description': 'actividad creada exitosamente'},
+        400:{'description': 'datos inválidos'},
+        401:{'description': 'no autorizado'}
+    }
+})
+@jwt_required()
+def modify_event(event_id):
+    event = db.session.get(Event, event_id)
+    if not event:
+        return jsonify({"message": "Event not found"}), 404
+    
+    group_event = db.session.get(GroupEvent, event_id)
+    
+    if not group_event:
+        return jsonify({"message": "The given event is not a assigned to any group"})
+    
+    group_id = group_event.group_id
+    user_id = get_jwt_identity()
+
+    if not GroupAdmin.query.filter_by(user_id=user_id, group_id=group_id).first():
+        return jsonify({"message": "Admin access required"}), 403
+
+    data = request.get_json()
+
+    if not data or 'name' not in data:
+        return jsonify({"message": "Invalid JSON format"}), 400
+
+    event.name = data["name"]
+    event.type = data["type"]
+    event.description = data["description"]
+    event.start_time = datetime.fromisoformat(data["start_time"])
+    event.end_time = datetime.fromisoformat(data["end_time"])
+
+    participation = Participation.query.filter_by(group_id=group_id).all()
+    for p in participation:
+        user_id = p.user_id
+        user_event = UserEvent.query.get({"user_id": user_id, "event_id": event_id})
+        user_event.seen = False
+
+    db.session.commit()
+
+    return jsonify({"message": "Evento añadido"}), 201
+
 
 @group_bp.route('/group', methods=['POST'])
 @swag_from({
