@@ -5,7 +5,7 @@ EstudIA es una aplicación diseñada para ayudar a los estudiantes a gestionar s
 ## 🚀 Tecnologías utilizadas  
 - **Frontend:** Flutter (Dart)  
 - **Backend:** Flask (Python) con SQLite  
-- **API:** Documentación disponible en `/apidocs`  
+- **API:** Documentación disponible en `localhost:5000/apidocs`  
 
 ## 📌 Frontend y Backend: Definiciones  
 - **Frontend:** La interfaz gráfica con la que interactúa el usuario. Se ha desarrollado en **Flutter**.  
@@ -14,12 +14,12 @@ EstudIA es una aplicación diseñada para ayudar a los estudiantes a gestionar s
 ## 📂 Estructura del repositorio  
 La carpeta "frontend_funcional" contiene los archivos necesarios para el frontend. Cada archivo .dart contiene una de las pantallas principales de la aplicación, tanto en estructura como en lógica. El código ApiServices.dart es un singleton que se utiliza desde el resto de archivos para comunicarse con el backend a través de la API de este.
 
-La carpeta "backend_Iria" contiene todos los codigos y archivos necesarios para el correcto funcionamiento de la aplicación: models.py define el esquema de la base de datos, __init__.py inicia la aplicación, y en /routes/ tenemos diferentes archivos con funciones que establecen las rutas de la API y realizan las queries a la base de datos.
+La carpeta "backend_Iria" contiene todos los codigos y archivos necesarios para el correcto funcionamiento de la aplicación: models.py define el esquema de la base de datos, run.py inicia la aplicación, y en /routes/ tenemos diferentes archivos con funciones que establecen las rutas de la API y realizan las queries a la base de datos.
 
 ## 🔧 Instalación y Ejecución  
-El programa debe ejecutarse desde run.py (backend_Iria/run.py), es posible que ejecutar otros archivos por separado dé errores, pero esto se debe a direcciones de importación y no afectan al programa final.
+El programa debe ejecutarse con Python 3.11 desde run.py (backend_Iria/run.py). Accedemos al backend en localhost:5000
 
-En la página principal no sale nada, pero si en la url se añade '/apidocs' se puede ver la documentación.
+En la página principal no sale nada, pero en 'localhost:5000/apidocs' se puede ver la documentación.
 
 
 El frontend hay que compilarlo con android sdk, e instalar el .apk resultante en un teléfono móbil con sistema android.
