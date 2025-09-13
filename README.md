@@ -1,5 +1,7 @@
 # **EstudIA**  
 
+[English version](README.en.md)
+
 EstudIA es una aplicación diseñada para ayudar a los estudiantes a gestionar sus horarios y calendarios de manera efectiva. Combina un frontend desarrollado en **Flutter** con un backend en **Flask y SQLite**, proporcionando una experiencia fluida y fácil de usar.  
 
 <p align="center">
