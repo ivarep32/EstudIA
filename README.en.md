@@ -26,10 +26,10 @@ The directory `frontend_funcional` contains the files needed to compile the fron
 The directory `backend_Iria` contains the latest functional backend. `models.py` defines the database schema; `run.py` starts the application; and the files in `/routes` establish the different API routes and query the database.
 
 ## 🔧 Running
-The backend needs Python 3.12 and has the requirements listed in `backend_Iria/requeriments.txt`.
+The backend needs Python 3.12 and has the requirements listed in `backend_Iria/requirements.txt`.
 It must be run from `backend_Iria/run.py`, and it's hosted at `localhost:5000`.
 
-The root website is blank, but the documentation can be checked at 'localhost:5000/apidocs'.
+The root website is blank, but the documentation can be checked at `/apidocs`.
 
 
 The frontend must be compiled with android sdk, and the resulting .apk file must then be installed in an android device.
